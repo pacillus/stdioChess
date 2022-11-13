@@ -13,12 +13,18 @@
 			"string.h": "c",
 			"stdlib.h": "c",
 			"queue": "c",
-			"random": "c"
+			"random": "c",
+			"stdiochessnetprot.h": "c"
 		},
 		"makefile.launchConfigurations": [
 			{
 				"cwd": "/Users/kei/Documents/大学関係/ネットワークソフトウェア/最終課題/project",
 				"binaryPath": "/Users/kei/Documents/大学関係/ネットワークソフトウェア/最終課題/project/chess_client",
+				"binaryArgs": []
+			},
+			{
+				"cwd": "/Users/kei/Documents/大学関係/ネットワークソフトウェア/最終課題/project",
+				"binaryPath": "/Users/kei/Documents/大学関係/ネットワークソフトウェア/最終課題/project/chess_server",
 				"binaryArgs": []
 			}
 		]

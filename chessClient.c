@@ -50,11 +50,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-
-#include "boardLog.h"
-#include "boardOutput.h"
-#include "stdioChess.h"
-
 #include "stdioChessNetProt.h"
 
 void runClient(const char* server_ip){
@@ -63,12 +58,17 @@ void runClient(const char* server_ip){
 	int    soc;  /* descriptor for socket */
 	//char   ip_str[]="127.0.0.1";
 	struct in_addr  ip;
-	char   buf[BUF_LEN];
+	//標準出力用バッファ
 	char stdbuf[BUF_LEN];
 	
+	//受信するレスポンスを格納する変数
 	ChessNetProtResponse response;
+	//送信するリクエストを格納する変数
+	ChessNetProtRequest request;
 
-	memset(buf, 0, BUF_LEN);
+	//プレイヤーの色
+	char color[6] = "color";
+
 	memset(stdbuf, 0, BUF_LEN);
 
 	inet_aton(server_ip, &ip);
@@ -92,10 +92,16 @@ void runClient(const char* server_ip){
 
 
 	
-	awaitResponse(&response, soc, buf);
-
-
+	awaitResponse(&response, soc);
+	strcpy(color, response.color);
 	myprintf(stdbuf, response.message);
+
+	
+	int input_len = read(0, stdbuf, BUF_LEN);
+	stdbuf[input_len - 1] = '\0';
+	strcpy(request.command, stdbuf);
+	sendRequest(&request, soc);
+
 }
 
 /*

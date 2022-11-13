@@ -2,7 +2,7 @@
  * stdioChess.c
  *
  *  Created on: 2020/07/29
- *      Author: kei
+ *      Author: pacillus
  */
 
 #include"stdioChess.h"

@@ -86,6 +86,7 @@ int runGame(){
     //thread_args->command_queue = player1_request;
     thread_args->soc = soc1;
     thread_args->game = &game;
+    strcpy(thread_args->color, "white");
 
     if(pthread_create(&player1_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
         fprintf(stderr, "pthread_create() failed¥n");
@@ -105,6 +106,7 @@ int runGame(){
     //thread_args->command_queue = player2_request;
     thread_args->soc = soc2;
     thread_args->game = &game;
+    strcpy(thread_args->color, "black");
 
     if(pthread_create(&player2_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
         fprintf(stderr, "pthread_create() failed¥n");
@@ -113,7 +115,7 @@ int runGame(){
     
     
     
-    sleep(5);
+    sleep(10);
     
     close(soc_waiting);
     return 0;
@@ -127,9 +129,13 @@ void *clientInterfaceThread(void *args){
 
     //ゲームの状態
     const BoardStatus *game;
+    //プレイヤーの色
+    char color[6] = "color";
 
     //送信するレスポンスを格納する変数
     ChessNetProtResponse response;
+    //受信するリクエストを格納する変数
+    ChessNetProtRequest request;
 
 
     /* 戻り時にスレッドのリソース割当を解除 */
@@ -142,17 +148,21 @@ void *clientInterfaceThread(void *args){
     //引数取り出し処理
     soc = ((CliIntThreadArgs *)args)->soc;
     game = ((CliIntThreadArgs *)args)->game;
+    strcpy(color, ((CliIntThreadArgs *)args)->color);
 
     //メモリの解放
     free(args);
 
     
-    strncpy(response.board, game->board, 64);
-    strcpy(response.message, "The game is ready to start!\n");
+    strncpy(response.board, game->board, BRD_LEN);
+    sprintf(response.message, "The game is ready to start!\nYour color is %s!\n", color);
     
 
-    sendResponse(&response, soc, buf);
+    sendResponse(&response, soc);
     
+    awaitRequest(&request, soc);
+
+    myprintf(stdbuf, request.command);
 
     return NULL;
 }

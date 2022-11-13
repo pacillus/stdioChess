@@ -21,29 +21,66 @@ void myprintf(char* buf, const char* format, ...){
     write(1, buf, strlen(buf));
 }
 
+/*
 void composeResponse(ChessNetProtResponse *response, char *buf){
-    strncpy(buf, response->board, BOARD_LEN);
-    strncpy(buf + BOARD_LEN, response->message, MES_LEN);
-}
+    strncpy(buf, response->board, BRD_LEN);
+    strncpy(buf + BRD_LEN, response->color, CLR_LEN);
+    strncpy(buf + BRD_LEN + CLR_LEN, response->message, MSG_LEN);
+}*/
 
+/*
 void parseResponse(ChessNetProtResponse *response, const char *buf){
-    strncpy(response->board, buf, BOARD_LEN);
-    strncpy(response->message, buf + BOARD_LEN, MES_LEN);
-    response->message[MES_LEN - 1] = '\0';
+    strncpy(response->board, buf, BRD_LEN);
+    strncpy(response->color, buf + BRD_LEN, CLR_LEN);
+    strncpy(response->message, buf + BRD_LEN + CLR_LEN, MSG_LEN);
+    response->message[MSG_LEN - 1] = '\0';
+}*/
+
+void sendResponse(ChessNetProtResponse *response, int socket){
+    write(socket, response, sizeof(ChessNetProtResponse));
 }
 
-void sendResponse(ChessNetProtResponse *response, int socket, char* buf){
-    composeResponse(response, buf);
-    write(socket, buf, BUF_LEN);
-}
-
-void awaitResponse(ChessNetProtResponse *response, int socket, char* buf){
+void awaitResponse(ChessNetProtResponse *response, int socket){
     int message_size;
     
-    message_size = read(socket, buf, BUF_LEN);
+    message_size = read(socket, response, sizeof(ChessNetProtResponse));
 
-    if(message_size != BUF_LEN){
+    if(message_size != sizeof(ChessNetProtResponse)){
         fprintf(stderr, "invalid message length\n");
+        memset(response, 0, sizeof(ChessNetProtResponse));
+        return;
     }
-    parseResponse(response, buf);
+
+    response->response_type[TYP_LEN - 1] = '\0'; 
+    response->color[CLR_LEN - 1] = '\0';
+    response->message[MSG_LEN - 1] = '\0';
+}
+
+/*
+void composeRequest(ChessNetProtRequest *request, char *buf){
+    strcpy(buf, request->command);
+}*/
+
+/*
+void parseRequest(ChessNetProtRequest *request, const char *buf){
+    strcpy(request->command, buf);
+    request->command[BUF_LEN - 1] = '\0';
+}*/
+
+void sendRequest(ChessNetProtRequest *request, int socket){
+    write(socket, request, sizeof(ChessNetProtRequest));
+}
+
+void awaitRequest(ChessNetProtRequest *request, int socket){
+    int message_size;
+    
+    message_size = read(socket, request, sizeof(ChessNetProtRequest));
+
+    if(message_size != sizeof(ChessNetProtRequest)){
+        fprintf(stderr, "invalid message length\n");
+        memset(request, 0, sizeof(ChessNetProtRequest));
+        return;
+    }
+
+    request->command[CMD_LEN - 1] = '\0';
 }
