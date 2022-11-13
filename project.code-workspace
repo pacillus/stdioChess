@@ -1,0 +1,26 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"in.h": "c",
+			"boardlog.h": "c",
+			"stdiochess.h": "c",
+			"chessclient.h": "c",
+			"string.h": "c",
+			"stdlib.h": "c",
+			"queue": "c",
+			"random": "c"
+		},
+		"makefile.launchConfigurations": [
+			{
+				"cwd": "/Users/kei/Documents/大学関係/ネットワークソフトウェア/最終課題/project",
+				"binaryPath": "/Users/kei/Documents/大学関係/ネットワークソフトウェア/最終課題/project/chess_client",
+				"binaryArgs": []
+			}
+		]
+	}
+}

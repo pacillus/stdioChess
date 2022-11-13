@@ -3,6 +3,10 @@
         "in.h": "c",
         "boardlog.h": "c",
         "stdiochess.h": "c",
-        "chessclient.h": "c"
+        "chessclient.h": "c",
+        "string.h": "c",
+        "stdlib.h": "c",
+        "queue": "c",
+        "random": "c"
     }
 }

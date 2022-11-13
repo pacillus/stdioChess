@@ -1,9 +1,9 @@
 /*
  * main.c
  *
- *  Created on: 2020/07/29
+ *  Created as main.c on: 2020/07/29
  *      Author: kei
- *  Modified on: 2022/11/11
+ *  Modified as chessClient.c on: 2022/11/13
  */
 
 /*to-do:チェスの盤面を描画して最低限動けるようにする
@@ -40,42 +40,62 @@
  * 
  * */
 
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netdb.h>
+#include <stdlib.h>
+#include <arpa/inet.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 
+#include "boardLog.h"
+#include "boardOutput.h"
+#include "stdioChess.h"
 
-#include"boardLog.h"
-#include"boardOutput.h"
-#include"stdioChess.h"
+#include "stdioChessNetProt.h"
 
-void runClient(){
+void runClient(const char* server_ip){
 	struct hostent  *server_ent;
 	struct sockaddr_in  server;
 	int    soc;  /* descriptor for socket */
 	//char   ip_str[]="127.0.0.1";
 	struct in_addr  ip;
 	char   buf[BUF_LEN];
-
-	if(argc !=2)
-	  exit(-1);
+	char stdbuf[BUF_LEN];
 	
-	inet_aton(argv[1], &ip);
+	ChessNetProtResponse response;
+
+	memset(buf, 0, BUF_LEN);
+	memset(stdbuf, 0, BUF_LEN);
+
+	inet_aton(server_ip, &ip);
 
 	memset((char *)&server, 0, sizeof(server));
 	server.sin_family = AF_INET;
 	server.sin_port = htons(PORT);
 	memcpy((char *)&server.sin_addr, &ip, sizeof(ip));
 
-	/* IPv4�ǥ��ȥ꡼�෿�Υ����åȤ����  */
+	/* IPv4でストリーム型のソケットを作成  */
 	if((soc = socket(AF_INET, SOCK_STREAM, 0)) < 0){
 		perror("socket");
 		exit(1);
 	}
 
-	/* ������(���)����³  */
+	/* サーバのアドレスをソケットに設定 */
 	if(connect(soc, (struct sockaddr *)&server, sizeof(server)) == -1){
 		perror("connect");
 		exit(1);
 	}
+
+
+	
+	awaitResponse(&response, soc, buf);
+
+
+	myprintf(stdbuf, response.message);
 }
 
 /*

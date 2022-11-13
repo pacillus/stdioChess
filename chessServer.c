@@ -2,6 +2,7 @@
 
 #include <netdb.h>
 #include <netinet/in.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,7 +24,11 @@ void *clientInterfaceThread(void *args);
 int connectClient();
 
 
-int runServer(){
+int runGame(){
+    /*変数宣言*/
+    //通信用
+	struct sockaddr_in me; /* サーバ(自分)の情報 */
+	int soc_waiting; /* listenするソケット */
     int soc1;
     int soc2;
 
@@ -33,67 +38,14 @@ int runServer(){
     pthread_t player1_threadID;
     pthread_t player2_threadID;
 
+    //初期化
     memset(player1_request, 0, sizeof(player1_request));
     memset(player2_request, 0, sizeof(player2_request));
 
+    //ゲーム本体を用意
     BoardStatus game = startGame();
 
-    //通信待機
-    soc1 = connectClient();
-    soc2 = connectClient();
-
-    //スレッド引数作成
-    struct CliIntThreadArgs *thread_args;
-    if((thread_args = (struct CliIntThreadArgs *)malloc(sizeof(struct CliIntThreadArgs))) == NULL){
-        fprintf(stderr, "malloc failed¥n");
-        exit(1);
-    }
     
-    thread_args->command_queue = player1_request;
-    thread_args->soc = soc1;
-
-    if(pthread_create(&player1_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
-        fprintf(stderr, "pthread_create() failed¥n");
-        exit(1);
-    }
-        
-    //スレッド引数作成
-    if((thread_args = (struct CliIntThreadArgs *)malloc(sizeof(struct CliIntThreadArgs))) == NULL){
-        fprintf(stderr, "malloc failed¥n");
-        exit(1);
-    }
-    
-    thread_args->command_queue = player2_request;
-    thread_args->soc = soc2;
-
-    if(pthread_create(&player2_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
-        fprintf(stderr, "pthread_create() failed¥n");
-        exit(1);
-    }
-    
-    
-
-    
-
-    
-
-    return 0;
-}
-
-//スレッド処理
-void *clientInterfaceThread(void *args){
-    write();
-
-
-    return NULL;
-}
-
-int connectClient(){
-    /*変数宣言*/
-	struct sockaddr_in me; /* サーバ(自分)の情報 */
-	int soc_waiting; /* listenするソケット */
-	int soc; /* 送受信に使うソケット */
-	char buf[BUF_LEN]; /* 送受信のバッファ */
 
     /* サーバ(自分)のアドレスを sockaddr_in 構造体に格納  */
 	memset((char *)&me, 0, sizeof(me));
@@ -113,14 +65,108 @@ int connectClient(){
 	  exit(1);
 	}
 
+    
+
+    //通信待機
+    soc1 = connectClient(soc_waiting);
+    soc2 = connectClient(soc_waiting);
+
+    
+    
+    //スレッド引数作成
+    CliIntThreadArgs *thread_args;
+
+    thread_args = (CliIntThreadArgs *)malloc(sizeof(CliIntThreadArgs));
+    if(thread_args == NULL){
+        fprintf(stderr, "malloc failed¥n");
+        exit(1);
+    }
+    
+    //引数用構造体に代入
+    //thread_args->command_queue = player1_request;
+    thread_args->soc = soc1;
+    thread_args->game = &game;
+
+    if(pthread_create(&player1_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
+        fprintf(stderr, "pthread_create() failed¥n");
+        exit(1);
+    }
+        
+    
+
+    
+    //スレッド引数作成
+    if((thread_args = (CliIntThreadArgs *)malloc(sizeof(CliIntThreadArgs))) == NULL){
+        fprintf(stderr, "malloc failed¥n");
+        exit(1);
+    }
+    
+    //引数用構造体に代入
+    //thread_args->command_queue = player2_request;
+    thread_args->soc = soc2;
+    thread_args->game = &game;
+
+    if(pthread_create(&player2_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
+        fprintf(stderr, "pthread_create() failed¥n");
+        exit(1);
+    }
+    
+    
+    
+    sleep(5);
+    
+    close(soc_waiting);
+    return 0;
+}
+
+//スレッド処理
+void *clientInterfaceThread(void *args){
+    int soc = 0; //送受信用のソケット
+	char buf[BUF_LEN]; /* 送受信のバッファ */
+    char stdbuf[BUF_LEN];
+
+    //ゲームの状態
+    const BoardStatus *game;
+
+    //送信するレスポンスを格納する変数
+    ChessNetProtResponse response;
+
+
+    /* 戻り時にスレッドのリソース割当を解除 */
+    pthread_detach(pthread_self());
+
+    //初期化
+    memset(buf, 0, BUF_LEN);
+    memset(stdbuf, 0, BUF_LEN);
+
+    //引数取り出し処理
+    soc = ((CliIntThreadArgs *)args)->soc;
+    game = ((CliIntThreadArgs *)args)->game;
+
+    //メモリの解放
+    free(args);
+
+    
+    strncpy(response.board, game->board, 64);
+    strcpy(response.message, "The game is ready to start!\n");
+    
+
+    sendResponse(&response, soc, buf);
+    
+
+    return NULL;
+}
+
+int connectClient(int soc_waiting){
+    int soc;
+
     /* ソケットで待ち受けることを設定 */
 	listen(soc_waiting, 1);
 
 	/* 接続要求が来るまでブロックする */
     soc = accept(soc_waiting, NULL, NULL);
 
-    /* 接続待ちのためのソケットを閉じる */
-	close(soc_waiting);
+    
 
     return soc;
 }

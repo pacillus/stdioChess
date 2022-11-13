@@ -1,15 +1,18 @@
 #ifndef CHESSSERVER_H_
 #define CHESSSERVER_H_
 
-struct CliIntThreadArgs{
+#include "stdioChess.h"
+
+typedef struct {
     int soc;
-    const char **command_queue;
-};
+    const BoardStatus *game;
+    //const char **command_queue;
+} CliIntThreadArgs;
 
 
 
 //サーバーのメイン処理
-int runServer();
+int runGame();
 
 
 

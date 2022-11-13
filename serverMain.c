@@ -1,7 +1,7 @@
 #include "chessServer.h"
 
 int main(){
-    runServer();
+    runGame();
 
     return 0;
 }
