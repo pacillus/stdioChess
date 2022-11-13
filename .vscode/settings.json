@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "in.h": "c",
+        "boardlog.h": "c",
+        "stdiochess.h": "c",
+        "chessclient.h": "c"
+    }
+}
