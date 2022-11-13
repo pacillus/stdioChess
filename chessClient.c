@@ -94,14 +94,23 @@ void runClient(const char* server_ip){
 	
 	awaitResponse(&response, soc);
 	strcpy(color, response.color);
-	myprintf(stdbuf, response.message);
+	myprintf(stdbuf, "%s:%s", response.response_type, response.message);
 
+	if(strcmp(color, "white") == 0){
+		strcpy(request.command, "d2>d4");
+	} else {
+		strcpy(request.command, "d7>d5");
+	}
+
+	char res_type[TYP_LEN];
+	memset(res_type, 0, sizeof(res_type));
+	while(strcmp(RES_TYPE_ACCEPTED, res_type) != 0){
+		sendRequest(&request, soc);
+		awaitResponse(&response, soc);
+		strcpy(res_type, response.response_type);
+	}
 	
-	int input_len = read(0, stdbuf, BUF_LEN);
-	stdbuf[input_len - 1] = '\0';
-	strcpy(request.command, stdbuf);
-	sendRequest(&request, soc);
-
+	myprintf(stdbuf, "%s:%s", response.response_type, response.message);
 }
 
 /*
