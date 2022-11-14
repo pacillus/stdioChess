@@ -1,4 +1,4 @@
-#include"chessServer.h"
+#include "chessServer.h"
 
 #include <netdb.h>
 #include <netinet/in.h>
@@ -14,34 +14,15 @@
 #include "boardOutput.h"
 #include "boardPosition.h"
 
-#include"stdioChessNetProt.h"
+#include "stdioChessNetProt.h"
 
-//コマンドリクエストキューのノード
-//連結リスト
-/*
-typedef struct CommandRequestNode{
-    //次のノード
-    struct CommandRequestNode *next;
-    //コマンド
-    char command[CMD_LEN];
-} CmdReqNode;*/
-
-/*
-typedef struct CommandQueue{
-    //先頭
-    CmdReqNode *front;
-    //最後尾
-    CmdReqNode *end;
-    //キューの排他制御用ロック
-    pthread_mutex_t mutex;
-} CmdQueue;*/
-
-typedef struct _StdioChessOrder{
+typedef struct _StdioChessOrder
+{
     //オーダーのフェーズ
-    //0:待機状態
-    //1:リクエスト受諾待機
-    //2:レスポンス書き込み待機
-    //3:レスポンス読み取り可能
+    // 0:待機状態
+    // 1:リクエスト受諾待機
+    // 2:レスポンス書き込み待機
+    // 3:レスポンス読み取り可能
     int phase;
     //受け取ったコマンドを格納する場所
     char command[CMD_LEN];
@@ -53,6 +34,13 @@ typedef struct _StdioChessOrder{
     pthread_mutex_t mutex;
 } StdioChessOrder;
 
+//コマンドを解釈してよければ実行する関数
+//戻り値:
+// 0:成功
+// 1:失敗、操作はターンプレイヤーでない
+// 2:失敗、無効な操作
+int acceptCommand(BoardStatus *game, const char *cmd, int player);
+
 //クライアントとの通信をマルチスレッドで行うためのスレッド処理
 void *clientInterfaceThread(void *args);
 
@@ -60,7 +48,8 @@ void *clientInterfaceThread(void *args);
 //戻り値はソケット
 int connectClient();
 
-void initOrder(StdioChessOrder *order){
+void initOrder(StdioChessOrder *order)
+{
     memset(order->command, 0, sizeof(order->command));
     memset(order->message, 0, sizeof(order->message));
     memset(order->res_type, 0, sizeof(order->res_type));
@@ -68,7 +57,8 @@ void initOrder(StdioChessOrder *order){
     pthread_mutex_init(&(order->mutex), NULL);
 }
 
-void resetOrder(StdioChessOrder *order){
+void resetOrder(StdioChessOrder *order)
+{
     pthread_mutex_lock(&(order->mutex));
     memset(order->command, 0, sizeof(order->command));
     memset(order->message, 0, sizeof(order->message));
@@ -77,8 +67,10 @@ void resetOrder(StdioChessOrder *order){
     pthread_mutex_unlock(&(order->mutex));
 }
 
-int assignCommand(StdioChessOrder *order, const char* command){
-    if(order->phase != 0) return 1;
+int assignCommand(StdioChessOrder *order, const char *command)
+{
+    if (order->phase != 0)
+        return 1;
     pthread_mutex_lock(&(order->mutex));
     strcpy(order->command, command);
     order->phase = 1;
@@ -86,8 +78,10 @@ int assignCommand(StdioChessOrder *order, const char* command){
     return 0;
 }
 
-int readCommand(StdioChessOrder *order, char* buf){
-    if(order->phase != 1) return 1;
+int readCommand(StdioChessOrder *order, char *buf)
+{
+    if (order->phase != 1)
+        return 1;
     pthread_mutex_lock(&(order->mutex));
     strcpy(buf, order->command);
     order->phase = 2;
@@ -95,8 +89,10 @@ int readCommand(StdioChessOrder *order, char* buf){
     return 0;
 }
 
-int assignResponse(StdioChessOrder *order, const char *response, const char *res_type){
-    if(order->phase != 2) return 1;
+int assignResponse(StdioChessOrder *order, const char *response, const char *res_type)
+{
+    if (order->phase != 2)
+        return 1;
     pthread_mutex_lock(&(order->mutex));
     strcpy(order->message, response);
     strcpy(order->res_type, res_type);
@@ -105,8 +101,10 @@ int assignResponse(StdioChessOrder *order, const char *response, const char *res
     return 0;
 }
 
-int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf){
-    if(order->phase != 3) return 1;
+int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf)
+{
+    if (order->phase != 3)
+        return 1;
     pthread_mutex_lock(&(order->mutex));
     strcpy(buf, order->message);
     strcpy(res_typ_buf, order->res_type);
@@ -115,11 +113,12 @@ int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf){
     return 0;
 }
 
-int runGame(){
+int runGame()
+{
     /*変数宣言*/
     //通信用
-	struct sockaddr_in me; /* サーバ(自分)の情報 */
-	int soc_waiting; /* listenするソケット */
+    struct sockaddr_in me; /* サーバ(自分)の情報 */
+    int soc_waiting;       /* listenするソケット */
     int soc1;
     int soc2;
 
@@ -142,27 +141,25 @@ int runGame(){
     //ゲーム本体を用意
     BoardStatus game = startGame();
 
-    
-
     /* サーバ(自分)のアドレスを sockaddr_in 構造体に格納  */
-	memset((char *)&me, 0, sizeof(me));
-	me.sin_family = AF_INET;
-	me.sin_addr.s_addr = htonl(INADDR_ANY);
-	me.sin_port = htons(PORT);
+    memset((char *)&me, 0, sizeof(me));
+    me.sin_family = AF_INET;
+    me.sin_addr.s_addr = htonl(INADDR_ANY);
+    me.sin_port = htons(PORT);
 
     /* IPv4でストリーム型のソケットを作成  */
-	if((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0 ){
-		perror("socket");
-		exit(1);
-	}
+    if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        perror("socket");
+        exit(1);
+    }
 
-	/* サーバ(自分)のアドレスをソケットに設定 */
-	if(bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1){
-	  perror("bind");
-	  exit(1);
-	}
-
-    
+    /* サーバ(自分)のアドレスをソケットに設定 */
+    if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1)
+    {
+        perror("bind");
+        exit(1);
+    }
 
     //通信待機
     soc1 = connectClient(soc_waiting);
@@ -170,73 +167,113 @@ int runGame(){
 
     //待ち受け用ソケットを閉じる
     close(soc_waiting);
-    
+
     //スレッド引数
     CliIntThreadArgs *thread_args;
 
-
     //スレッドの領域確保
     thread_args = (CliIntThreadArgs *)malloc(sizeof(CliIntThreadArgs));
-    if(thread_args == NULL){
+    if (thread_args == NULL)
+    {
         fprintf(stderr, "malloc failed¥n");
         exit(1);
     }
-    
+
     //引数用構造体に代入
     thread_args->soc = soc1;
     thread_args->game = &game;
     thread_args->order = &player1_order;
     strcpy(thread_args->color, "white");
 
-    if(pthread_create(&player1_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
+    if (pthread_create(&player1_threadID, NULL, clientInterfaceThread, (void *)thread_args) != 0)
+    {
         fprintf(stderr, "pthread_create() failed¥n");
         exit(1);
     }
-        
 
     //スレッド引数作成
-    if((thread_args = (CliIntThreadArgs *)malloc(sizeof(CliIntThreadArgs))) == NULL){
+    if ((thread_args = (CliIntThreadArgs *)malloc(sizeof(CliIntThreadArgs))) == NULL)
+    {
         fprintf(stderr, "malloc failed¥n");
         exit(1);
     }
-    
+
     //引数用構造体に代入
     thread_args->soc = soc2;
     thread_args->game = &game;
     thread_args->order = &player2_order;
     strcpy(thread_args->color, "black");
 
-    if(pthread_create(&player2_threadID, NULL, clientInterfaceThread, (void *) thread_args) != 0){
+    if (pthread_create(&player2_threadID, NULL, clientInterfaceThread, (void *)thread_args) != 0)
+    {
         fprintf(stderr, "pthread_create() failed¥n");
         exit(1);
     }
-    
-    int success_count = 0;
-    while(success_count < 2){
-        if(player1_order.phase == 1){
+
+    int result = 0;
+    while (!game.game_end)
+    {
+        if (player1_order.phase == 1)
+        {
             readCommand(&player1_order, cmd_buf);
             //ここにコマンドの処理
-            assignResponse(&player1_order, "Successfully received the command!\n", RES_TYPE_ACCEPTED);
-            success_count++;
+            result = acceptCommand(&game, cmd_buf, 1);
+            if (result == 0)
+                assignResponse(&player1_order, "Successfully received the command!\n", RES_TYPE_ACCEPTED);
+            if (result == 1)
+                assignResponse(&player1_order, "Command denied since you are not a turn player\n", RES_TYPE_DENIED);
+            if (result == 2)
+                assignResponse(&player1_order, "Command denied due to invalid command\n", RES_TYPE_DENIED);
+            if (1 == result)
+            {
+                fprintf(stderr, "Unknown error occured in readCommand");
+            }
         }
-        if(player2_order.phase == 1){
-            if( 1 == readCommand(&player2_order, cmd_buf)){
+        if (player2_order.phase == 1)
+        {
+            if (1 == readCommand(&player2_order, cmd_buf))
+            {
                 fprintf(stderr, "Unknown error occured in readCommand");
             }
             //ここにコマンドの処理
-            if( 1 == assignResponse(&player2_order, "Successfully received the command!\n", RES_TYPE_ACCEPTED)){
+            result = acceptCommand(&game, cmd_buf, 2);
+            if (result == 0)
+                result = assignResponse(&player2_order, "Accepted the command and the move was made!\n", RES_TYPE_ACCEPTED);
+            else if (result == 1)
+                result = assignResponse(&player2_order, "Command denied since you are not a turn player\n", RES_TYPE_DENIED);
+            else if (result == 2)
+                result = assignResponse(&player2_order, "Command denied due to invalid command\n", RES_TYPE_DENIED);
+            if (1 == result)
+            {
                 fprintf(stderr, "Unknown error occured in readCommand");
             }
-            success_count++;
         }
     }
-    
-    
+
+    sleep(5);
+
     return 0;
 }
 
+int acceptCommand(BoardStatus *game, const char *cmd, int player)
+{
+    int turn = game->turn;
+    if (turn % 2 == player % 2)
+    {
+        movePieceCommand(game, cmd);
+        if (game->turn == turn + 1)
+            return 0;
+        return 2;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
 //スレッド処理
-void *clientInterfaceThread(void *args){
+void *clientInterfaceThread(void *args)
+{
     int soc = 0; //送受信用のソケット
     //標準入出力のバッファ
     char stdbuf[BUF_LEN];
@@ -271,40 +308,42 @@ void *clientInterfaceThread(void *args){
     //メモリの解放
     free(args);
 
-    
     response.board = *game;
     sprintf(response.message, "The game is ready to start!\nYour color is %s!\n", color);
-    strcpy(response.response_type, "[START]");
+    strcpy(response.response_type, RES_TYPE_START);
     strcpy(response.color, color);
 
     sendResponse(&response, soc);
-    
-    
-    awaitRequest(&request, soc);
-    if(assignCommand(order, request.command) == 1){
-        fprintf(stderr, "Unknown error in assignCommand");
-    }
-    
-    memset(&response, 0, sizeof(response));
-    int invalid = 1;
-    while(invalid == 1){
-        invalid = readResponse(order, response.message, response.response_type);
-    }
-    response.board = *game;
-    strcpy(response.color, color);
-    sendResponse(&response, soc);
 
+    while (1){
+        awaitRequest(&request, soc);
+        if (assignCommand(order, request.command) == 1){
+            fprintf(stderr, "Unknown error in assignCommand");
+        }
+
+        memset(&response, 0, sizeof(response));
+        int invalid = 1;
+        while (invalid == 1){
+            invalid = readResponse(order, response.message, response.response_type);
+        }
+        response.board = *game;
+        strcpy(response.color, color);
+        sendResponse(&response, soc);
+    }
+
+    myprintf(stdbuf, "subthread_end\n");
     close(soc);
     return NULL;
 }
 
-int connectClient(int soc_waiting){
+int connectClient(int soc_waiting)
+{
     int soc;
 
     /* ソケットで待ち受けることを設定 */
-	listen(soc_waiting, 1);
+    listen(soc_waiting, 1);
 
-	/* 接続要求が来るまでブロックする */
+    /* 接続要求が来るまでブロックする */
     soc = accept(soc_waiting, NULL, NULL);
 
     return soc;

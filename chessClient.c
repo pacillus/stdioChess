@@ -116,13 +116,46 @@ void runClient(const char* server_ip){
 		sendRequest(&request, soc);
 		awaitResponse(&response, soc);
 		strcpy(res_type, response.response_type);
+		printBoard(stdbuf, &response);
+		sleep(3);
 	}
 	
-	printBoard(stdbuf, &response);
+	if(strcmp(color, "white") == 0){
+		strcpy(request.command, "e2>e4");
+	} else {
+		strcpy(request.command, "d5>e4");
+	}
+
+	memset(res_type, 0, sizeof(res_type));
+	
+	while(strcmp(RES_TYPE_ACCEPTED, res_type) != 0){
+		sendRequest(&request, soc);
+		awaitResponse(&response, soc);
+		strcpy(res_type, response.response_type);
+		printBoard(stdbuf, &response);
+		sleep(3);
+	}
+
+	if(strcmp(color, "white") == 0){
+		strcpy(request.command, "c2>c3");
+	} else {
+		strcpy(request.command, "d8>d5");
+	}
+
+	memset(res_type, 0, sizeof(res_type));
+	
+	while(strcmp(RES_TYPE_ACCEPTED, res_type) != 0){
+		sendRequest(&request, soc);
+		awaitResponse(&response, soc);
+		strcpy(res_type, response.response_type);
+		printBoard(stdbuf, &response);
+		sleep(3);
+	}
 
 	close(soc);
 	return;
 }
+
 
 void printBoard(char* stdbuf, const ChessNetProtResponse *response){
 	BrdOutputImage image = newScrnImage(&response->board, 1);
@@ -133,8 +166,6 @@ void printBoard(char* stdbuf, const ChessNetProtResponse *response){
 	addBrdMessage(&image, stdbuf);
 
 	drawBrdImageDfMsgS(stdbuf, &image);
-	
-
 
 	write(1, stdbuf, strlen(stdbuf));
 

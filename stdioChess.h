@@ -56,6 +56,8 @@ typedef struct{
 	char board[8][8];
 	//キャッスリングが可能かをマスクで示す
 	char cst_flag_mask;
+	//1なら終了 0なら続行
+	char game_end;
 }BoardStatus;
 
 //何もないまっさらな盤面を用意

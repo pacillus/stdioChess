@@ -69,6 +69,8 @@ BoardStatus startGame(){
 	newgame.cst_flag_mask |= BLACK_KSD_CST_FLAG;
 	newgame.cst_flag_mask |= BLACK_QSD_CST_FLAG;
 
+	newgame.game_end = 0;
+
 	return newgame;
 }
 

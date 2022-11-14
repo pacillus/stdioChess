@@ -29,7 +29,7 @@ void printSquareContentS(char *buf, char piece, const piece_marker_set set, int 
 }
 
 void drawBrdImageS(char *buf, const BrdOutputImage* image){
-    //sprintf(buf, "\033[H\033[J");
+    sprintf(buf, "\033[H\033[J");
 	strcpy(buf, " ┌───┬───┬───┬───┬───┬───┬───┬───┐\n");
 	for(int i = 0; i < 8; i++){
         buf += strlen(buf);
