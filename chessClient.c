@@ -2,7 +2,7 @@
  * main.c
  *
  *  Created as main.c on: 2020/07/29
- *      Author: kei
+ *      Author: pacillus
  *  Modified as chessClient.c on: 2022/11/13
  */
 
@@ -40,6 +40,8 @@
  * 
  * */
 
+#include "chessClient.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -50,7 +52,12 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "boardOutput.h"
+#include "stdioChess.h"
+#include "sprintBrdOutput.h"
 #include "stdioChessNetProt.h"
+
+#define OUTPUT_BUF 2048
 
 void runClient(const char* server_ip){
 	struct hostent  *server_ent;
@@ -59,7 +66,7 @@ void runClient(const char* server_ip){
 	//char   ip_str[]="127.0.0.1";
 	struct in_addr  ip;
 	//標準出力用バッファ
-	char stdbuf[BUF_LEN];
+	char stdbuf[OUTPUT_BUF];
 	
 	//受信するレスポンスを格納する変数
 	ChessNetProtResponse response;
@@ -69,7 +76,7 @@ void runClient(const char* server_ip){
 	//プレイヤーの色
 	char color[6] = "color";
 
-	memset(stdbuf, 0, BUF_LEN);
+	memset(stdbuf, 0, OUTPUT_BUF);
 
 	inet_aton(server_ip, &ip);
 
@@ -94,7 +101,8 @@ void runClient(const char* server_ip){
 	
 	awaitResponse(&response, soc);
 	strcpy(color, response.color);
-	myprintf(stdbuf, "%s:%s", response.response_type, response.message);
+	//visualizeMessage((char *)&response, sizeof(response));
+	printBoard(stdbuf, &response);
 
 	if(strcmp(color, "white") == 0){
 		strcpy(request.command, "d2>d4");
@@ -110,8 +118,28 @@ void runClient(const char* server_ip){
 		strcpy(res_type, response.response_type);
 	}
 	
-	myprintf(stdbuf, "%s:%s", response.response_type, response.message);
+	printBoard(stdbuf, &response);
+
+	close(soc);
+	return;
 }
+
+void printBoard(char* stdbuf, const ChessNetProtResponse *response){
+	BrdOutputImage image = newScrnImage(&response->board, 1);
+	//メッセージを追加
+	//バッファは出力格納するまでは作業場
+	sprintf(stdbuf, "|%s|%s:%s", response->color, response->response_type, response->message);
+	
+	addBrdMessage(&image, stdbuf);
+
+	drawBrdImageDfMsgS(stdbuf, &image);
+	
+
+
+	write(1, stdbuf, strlen(stdbuf));
+
+	return;
+}	
 
 /*
 int main(){

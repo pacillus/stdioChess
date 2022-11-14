@@ -2,7 +2,8 @@
  * boardOutput.h
  *
  *  Created on: 2020/07/30
- *      Author: kei
+ *      Author: pacillus
+ * 
  */
 
 #ifndef BOARDOUTPUT_H_
@@ -16,7 +17,7 @@ typedef char* piece_marker_set[12];
 typedef struct{
 	//つけるメッセージ0から順番に上から描画
 	char messages[9][99];
-	const BoardStatus* status ;
+	const BoardStatus* board;
 	int markers[8][8];
 	piece_marker_set charset;
 	char markertype[10];
@@ -34,7 +35,10 @@ extern const piece_marker_set letter_set;
 extern const piece_marker_set real_set;
 
 
-BrdOutputImage newScrnImage(const BoardStatus* stat, int guideflag);
+//新規の描画イメージ
+//board:描画する盤面
+//guideflag:下や横に数字のガイドをつけるオプション1の時つける
+BrdOutputImage newScrnImage(const BoardStatus* board, int guideflag);
 
 //imageに基づき画面を描画
 void drawBrdImage(const BrdOutputImage* image);
@@ -62,5 +66,9 @@ void setMovableMarker(BrdOutputImage* image, BoardPosition mrkrpos);
 
 //コマの表示の仕方を変更
 void setPieceMarker(BrdOutputImage* image, const piece_marker_set markers);
+
+//コマのコードから実際に表示する文字に変換
+//人力で変換してるけど絶対もっといい方法あった
+void convertPiece(char piece, const piece_marker_set set,char* to);
 
 #endif /* BOARDOUTPUT_H_ */

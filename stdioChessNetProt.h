@@ -16,13 +16,15 @@
 #ifndef STDIOCHESSNETPROT_H_
 #define STDIOCHESSNETPROT_H_
 
+#include <stdio.h>
+
 #include "stdioChess.h"
 
 //送受信用バッファの大きさ
 #define BUF_LEN 256
 
 //チェスの盤面の大きさ
-#define BRD_LEN (8 * 8)
+#define BRD_LEN (sizeof(BoardStatus))
 //プレイヤーの色情報の長さ
 #define CLR_LEN 8
 //レスポンス状況
@@ -49,7 +51,7 @@
 #define RES_TYPE_DENIED ("[DENIED]")
 
 typedef struct{
-    char board[BRD_LEN];
+    BoardStatus board;
     char color[CLR_LEN];
     char response_type[TYP_LEN];
     char message[RES_MSG_LEN];
@@ -65,7 +67,6 @@ typedef struct{
 //format:表示する書式つき文字列
 //...:書式に代入するフィールド
 void myprintf(char* buf, const char* format, ...);
-
 
 //レスポンスを送信する
 //-引数-
@@ -97,5 +98,7 @@ void sendRequest(ChessNetProtRequest *request, int socket);
 //socket:開始待機をするソケット
 //buf:ゲーム開始のメッセージを受け取るバッファ
 void awaitRequest(ChessNetProtRequest *request, int socket);
+
+void visualizeMessage(const char *buf, size_t size);
 
 #endif //STDIOCHESSNETPROT_H_

@@ -15,7 +15,8 @@
 			"queue": "c",
 			"random": "c",
 			"stdiochessnetprot.h": "c",
-			"system_error": "c"
+			"system_error": "c",
+			"boardoutput.h": "c"
 		},
 		"makefile.launchConfigurations": [
 			{

@@ -115,75 +115,6 @@ int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf){
     return 0;
 }
 
-/*
-CmdQueue *createCmdQueue(){
-    CmdQueue *new_queue;
-    new_queue = malloc(sizeof(new_queue));
-    new_queue->front = NULL;
-    new_queue->end = NULL;
-    pthread_mutex_init(&(new_queue->mutex), NULL);
-    return new_queue;
-}*/
-
-/*
-void enqueue(CmdQueue *queue, const char *command){
-    CmdReqNode *new_node;
-
-    //新しいノードを作成
-    new_node = (CmdReqNode *)malloc(sizeof(CmdReqNode));
-    new_node->next = NULL;
-    strcpy(new_node->command, command);
-
-    //キューに対する排他開始
-    pthread_mutex_lock(&(queue->mutex));
-
-    //空だった場合のみ両方追加
-    if(queue->front == NULL){
-        queue->front = new_node;
-    }
-    //終端に追加
-    queue->end = new_node;
-
-    //キューに対する排他終了
-    pthread_mutex_unlock(&(queue->mutex));
-}*/
-
-/*
-void dequeue(CmdQueue *queue, char *cmdbuf){
-    CmdQueue *next;
-
-    //データがない場合から文字列渡して終了
-    if(queue->front == NULL){
-        strcpy(cmdbuf, "");
-        return;
-    }
-
-    //データを格納
-    strcpy(cmdbuf, queue->front->command);
-    //次の先頭のポインタを取っておく
-    next = queue->front->next;
-
-    //キューに対する排他開始
-    pthread_mutex_lock(&(queue->mutex));
-
-    //用済みの領域の開放
-    free(queue->front);
-    //先頭の差し替え
-    queue->front = next;
-    //空になってしまった場合終端をヌルに設定
-    if(next == NULL){
-        queue->end = NULL;
-    }
-
-    //キューに対する排他終了
-    pthread_mutex_unlock(&(queue->mutex));
-}*/
-
-/*
-int isCmdQueueEmpty(const CmdQueue *queue){
-    return queue->front == NULL;
-}*/
-
 int runGame(){
     /*変数宣言*/
     //通信用
@@ -270,7 +201,6 @@ int runGame(){
     }
     
     //引数用構造体に代入
-    //thread_args->command_queue = player2_request;
     thread_args->soc = soc2;
     thread_args->game = &game;
     thread_args->order = &player2_order;
@@ -290,9 +220,13 @@ int runGame(){
             success_count++;
         }
         if(player2_order.phase == 1){
-            readCommand(&player2_order, cmd_buf);
+            if( 1 == readCommand(&player2_order, cmd_buf)){
+                fprintf(stderr, "Unknown error occured in readCommand");
+            }
             //ここにコマンドの処理
-            assignResponse(&player2_order, "Successfully received the command!\n", RES_TYPE_ACCEPTED);
+            if( 1 == assignResponse(&player2_order, "Successfully received the command!\n", RES_TYPE_ACCEPTED)){
+                fprintf(stderr, "Unknown error occured in readCommand");
+            }
             success_count++;
         }
     }
@@ -338,7 +272,7 @@ void *clientInterfaceThread(void *args){
     free(args);
 
     
-    strncpy(response.board, game->board, BRD_LEN);
+    response.board = *game;
     sprintf(response.message, "The game is ready to start!\nYour color is %s!\n", color);
     strcpy(response.response_type, "[START]");
     strcpy(response.color, color);
@@ -347,19 +281,20 @@ void *clientInterfaceThread(void *args){
     
     
     awaitRequest(&request, soc);
-    myprintf(stdbuf, request.command);
-    myprintf(stdbuf, "assigning\n");
-    assignCommand(order, request.command);
+    if(assignCommand(order, request.command) == 1){
+        fprintf(stderr, "Unknown error in assignCommand");
+    }
     
     memset(&response, 0, sizeof(response));
     int invalid = 1;
     while(invalid == 1){
-        myprintf(stdbuf, "awaiting response\n");
         invalid = readResponse(order, response.message, response.response_type);
     }
-    strncpy(response.board, game->board, BRD_LEN);
+    response.board = *game;
+    strcpy(response.color, color);
     sendResponse(&response, soc);
 
+    close(soc);
     return NULL;
 }
 

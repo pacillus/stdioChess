@@ -63,10 +63,11 @@ BoardStatus startGame(){
 	newgame.board[3][7] ='Q';
 	newgame.board[4][7] ='K';
 
-	newgame.white_ksd_cst_flag = 1;
-	newgame.white_qsd_cst_flag = 1;
-	newgame.black_ksd_cst_flag = 1;
-	newgame.black_qsd_cst_flag = 1;
+	newgame.cst_flag_mask = '\0';
+	newgame.cst_flag_mask |= WHITE_KSD_CST_FLAG;
+	newgame.cst_flag_mask |= WHITE_QSD_CST_FLAG;
+	newgame.cst_flag_mask |= BLACK_KSD_CST_FLAG;
+	newgame.cst_flag_mask |= BLACK_QSD_CST_FLAG;
 
 	return newgame;
 }
@@ -284,13 +285,13 @@ int canCastle(const BoardStatus* status, BoardPosition from, BoardPosition to){
 
 	if(abs(xoffset) != 2) return 0;
 
-	if(xoffset == 2 && from.y == 1 && status -> white_ksd_cst_flag == 1){
+	if(xoffset == 2 && from.y == 1 && status->cst_flag_mask & WHITE_KSD_CST_FLAG){
 		return canRMove(status, brdPos(8, 1), brdPos(6,1));
-	} else if(xoffset == -2 && from.y == 1 && status -> white_qsd_cst_flag == 1){
+	} else if(xoffset == -2 && from.y == 1 && status->cst_flag_mask & WHITE_QSD_CST_FLAG){
 		return canRMove(status, brdPos(1, 1), brdPos(4,1));
-	}else if(xoffset == 2 && from.y == 8 && status -> black_ksd_cst_flag == 1){
+	}else if(xoffset == 2 && from.y == 8 && status->cst_flag_mask & BLACK_KSD_CST_FLAG){
 		return canRMove(status, brdPos(8, 8), brdPos(6,8));
-	}else if(xoffset == -2 && from.y == 8 && status -> black_qsd_cst_flag == 1){
+	}else if(xoffset == -2 && from.y == 8 && status->cst_flag_mask & BLACK_QSD_CST_FLAG){
 		return canRMove(status, brdPos(1, 8), brdPos(4,8));
 	}
 
@@ -324,20 +325,28 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 
 			//動きの結果キャッスルできなくなるようにする処理
 			if(getPiece(status,from) == 'k'
-					|| (getPiece(status, from) == 'r' && from.x == 1 && from.y == 1)){
-				status -> white_qsd_cst_flag = 0;
+					|| (getPiece(status, from) == 'r' 
+					&& from.x == 1 && from.y == 1)){
+				//ビット反転させたマスクと論理積をとることで特定の箇所を0に
+				status->cst_flag_mask &= ~WHITE_QSD_CST_FLAG;
 			}
 			if(getPiece(status, from) == 'k'
-					|| (getPiece(status, from) == 'r' && from.x == 8 && from.y == 1)){
-				status -> white_ksd_cst_flag = 0;
+					|| (getPiece(status, from) == 'r' 
+					&& from.x == 8 && from.y == 1)){
+				//ビット反転させたマスクと論理積をとることで特定の箇所を0に
+				status->cst_flag_mask &= ~WHITE_KSD_CST_FLAG;
 			}
 			if(getPiece(status,from) == 'K'
-					|| (getPiece(status, from) == 'R' && from.x == 1 && from.y == 8)){
-				status -> black_qsd_cst_flag = 0;
+					|| (getPiece(status, from) == 'R' 
+					&& from.x == 1 && from.y == 8)){
+				//ビット反転させたマスクと論理積をとることで特定の箇所を0に
+				status->cst_flag_mask &= ~BLACK_QSD_CST_FLAG;
 			}
 			if(getPiece(status, from) == 'K'
-					|| (getPiece(status, from) == 'R' && from.x == 8 && from.y == 8)){
-				status -> black_ksd_cst_flag = 0;
+					|| (getPiece(status, from) == 'R' 
+					&& from.x == 8 && from.y == 8)){
+				//ビット反転させたマスクと論理積をとることで特定の箇所を0に
+				status->cst_flag_mask &= ~BLACK_QSD_CST_FLAG;
 			}
 
 			movePieceNoRule(status, from, to);
@@ -351,12 +360,13 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 		if((isPieceWhite(getPiece(status, from)) && isWhiteTurn(status))
 				|| (isPieceBlack(getPiece(status, from)) && isBlackTurn(status))){
 			//キャッスリングをもうできなくする
+			//ビット反転させたマスクと論理積をとることで特定の箇所を0に
 			if(isPieceWhite(getPiece(status, from))){
-				status -> white_ksd_cst_flag = 0;
-				status -> white_qsd_cst_flag = 0;
+				status->cst_flag_mask &= ~WHITE_KSD_CST_FLAG;
+				status->cst_flag_mask &= ~WHITE_QSD_CST_FLAG;
 			}else{
-				status -> black_ksd_cst_flag = 0;
-				status -> black_qsd_cst_flag = 0;
+				status->cst_flag_mask &= ~BLACK_KSD_CST_FLAG;
+				status->cst_flag_mask &= ~BLACK_QSD_CST_FLAG;
 			}
 
 			if(to.x - from.x == 2){
@@ -429,12 +439,12 @@ int isMvCmdValid(const char* command){
 }
 
 //予測用
-BoardPosition detectMoveSpace(const BoardStatus* status, BoardPosition pos){
+BoardPosition detectMoveSpace(const BoardStatus* board, BoardPosition pos){
 	static int logi = 1;
 	static int logj = 1;
 	for(int i = logi; i <= 8; i++, logi++){
 		for(int j = logj; j <= 8; j++, logj++){
-			if(canMove(status, pos, brdPos(i, j)) || canCastle(status, pos, brdPos(i, j))){
+			if(canMove(board, pos, brdPos(i, j)) || canCastle(board, pos, brdPos(i, j))){
 				if(logj == 8){
 					 logi++;
 					logj = 1;

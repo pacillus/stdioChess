@@ -90,3 +90,17 @@ void awaitRequest(ChessNetProtRequest *request, int socket){
     request->command[CMD_LEN - 1] = '\0';
     request->message[REQ_MSG_LEN - 1] = '\0';
 }
+
+void visualizeMessage(const char *buf, size_t size){
+    char tmp[8];
+    memset(tmp, 0, sizeof(tmp));
+    for(int i = 0; i < size; i++){
+        myprintf(tmp, "%02x", buf[i]);
+        if(i % 16 == 15){
+            myprintf(tmp, "\n");
+        } else if(i % 4 == 3){
+            myprintf(tmp, " ");
+        }
+        
+    }
+}

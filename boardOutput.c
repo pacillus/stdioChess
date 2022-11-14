@@ -2,7 +2,7 @@
  * boardOutput.c
  *
  *  Created on: 2020/07/30
- *      Author: kei
+ *      Author: pacillus
  */
 
 #include"boardOutput.h"
@@ -39,8 +39,8 @@ const piece_marker_set real_set = {"♟","♞","♝","♜","♛","♚","♙","�
 
 
 //関数の実装-------------------------------------------------------
-BrdOutputImage newScrnImage(const BoardStatus* stat, int guideflag){
-	BrdOutputImage newimage = {{}, stat, {}, {}, "x", 1};
+BrdOutputImage newScrnImage(const BoardStatus* board, int guideflag){
+	BrdOutputImage newimage = {{}, board, {}, {}, "x", 1};
 	newimage.not_guide_flag = guideflag;
 	for(int i = 0; i < 12; i++){
 		newimage.charset[i] = letter_set[i];
@@ -97,37 +97,7 @@ void printSquareContent(char piece, const piece_marker_set set, int markerflag, 
 	return;
 }
 
-//人力で変換してるけど絶対もっといい方法あった
-void convertPiece(char piece, const piece_marker_set set,char* to){
-	if(piece == 'p'){
-		strcpy(to, set[0]);
-	} else if(piece == 'n'){
-		strcpy(to, set[1]);
-	} else if(piece == 'b'){
-		strcpy(to, set[2]);
-	} else if(piece == 'r'){
-		strcpy(to, set[3]);
-	} else if(piece == 'q'){
-		strcpy(to, set[4]);
-	} else if(piece == 'k'){
-		strcpy(to, set[5]);
-	} else if(piece == 'P'){
-		strcpy(to, set[6]);
-	} else if(piece == 'N'){
-		strcpy(to, set[7]);
-	} else if(piece == 'B'){
-		strcpy(to, set[8]);
-	} else if(piece == 'R'){
-		strcpy(to, set[9]);
-	} else if(piece == 'Q'){
-		strcpy(to, set[10]);
-	} else if(piece == 'K'){
-		strcpy(to, set[11]);
-	} else{
-		strcpy(to, " ");
-	}
-	return;
-}
+
 
 
 
@@ -149,7 +119,7 @@ void drawBrdImage(const BrdOutputImage* image){
 			}
 			*/
 
-			printSquareContent(image->status->board[j][7- i], image->charset, image->markers[j][7 - i], image->markertype);
+			printSquareContent(image->board->board[j][7- i], image->charset, image->markers[j][7 - i], image->markertype);
 
 		}
 		printf("│\n");
@@ -165,12 +135,13 @@ void drawBrdImage(const BrdOutputImage* image){
 void drawBrdImageDfMsg(const BrdOutputImage* image){
 	BrdOutputImage tmpimg;
 	tmpimg = *image;
-	if(isWhiteTurn(image->status)){
+	if(isWhiteTurn(image->board)){
 		addBrdMessage(&tmpimg,"白の番です");
 	} else{
 		addBrdMessage(&tmpimg,"黒の番です");
 	}
 	drawBrdImage(&tmpimg);
+	return;
 }
 
 //移動可能範囲をマークしたものを描画
@@ -187,8 +158,6 @@ void drawMarkedBrdImage(const BrdOutputImage* image, BoardPosition pos){
 
 	drawBrdImageDfMsg(&tmpimg);
 }
-
-
 
 void addBrdMessage(BrdOutputImage* image, const char* msg){
 	int i = 0;
@@ -221,7 +190,7 @@ void clearBrdMarker(BrdOutputImage* image){
 void setMovableMarker(BrdOutputImage* image, BoardPosition mrkrpos){
 	BoardPosition marker = nullPos();;
 	while(1){
-		marker = detectMoveSpace(image->status, mrkrpos);
+		marker = detectMoveSpace(image->board, mrkrpos);
 		if(isOutofBoard(marker)){
 			break;
 		} else {
@@ -237,3 +206,34 @@ void setPieceMarker(BrdOutputImage* image, const piece_marker_set markers){
 	}
 }
 
+
+void convertPiece(char piece, const piece_marker_set set,char* to){
+	if(piece == 'p'){
+		strcpy(to, set[0]);
+	} else if(piece == 'n'){
+		strcpy(to, set[1]);
+	} else if(piece == 'b'){
+		strcpy(to, set[2]);
+	} else if(piece == 'r'){
+		strcpy(to, set[3]);
+	} else if(piece == 'q'){
+		strcpy(to, set[4]);
+	} else if(piece == 'k'){
+		strcpy(to, set[5]);
+	} else if(piece == 'P'){
+		strcpy(to, set[6]);
+	} else if(piece == 'N'){
+		strcpy(to, set[7]);
+	} else if(piece == 'B'){
+		strcpy(to, set[8]);
+	} else if(piece == 'R'){
+		strcpy(to, set[9]);
+	} else if(piece == 'Q'){
+		strcpy(to, set[10]);
+	} else if(piece == 'K'){
+		strcpy(to, set[11]);
+	} else{
+		strcpy(to, " ");
+	}
+	return;
+}

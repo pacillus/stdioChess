@@ -2,7 +2,10 @@
  * stdioChess.h
  *
  *  Created on: 2020/07/29
- *      Author: kei
+ *      Author: pacillus
+ * 
+ * 	Modified on: 2022/11/14
+ * 		Author: pacillus
  */
 
 /*stdioChessプロジェクトの本体
@@ -35,14 +38,24 @@
 
 #include"boardPosition.h"
 
+//白が王側でキャッスリングできるか
+#define BLACK_KSD_CST_FLAG (1 << 0)
+//白が女王側でキャッスリングできるか
+#define BLACK_QSD_CST_FLAG (1 << 1)
+//黒が王側でキャッスリングできるか
+#define WHITE_KSD_CST_FLAG (1 << 2)
+//黒が女王側でキャッスリングできるか
+#define WHITE_QSD_CST_FLAG (1 << 3)
+
+
 //コマは棋譜での表示に従ってcharで表示、ただし白は小文字黒は大文字
 typedef struct{
-	int turn;
+	//何手目か
+	short turn;
+	//盤面の状況
 	char board[8][8];
-	int black_ksd_cst_flag;
-	int black_qsd_cst_flag;
-	int white_ksd_cst_flag;
-	int white_qsd_cst_flag;
+	//キャッスリングが可能かをマスクで示す
+	char cst_flag_mask;
 }BoardStatus;
 
 //何もないまっさらな盤面を用意
@@ -86,7 +99,7 @@ char getPiece(const BoardStatus* status, BoardPosition pos);
 int canMove(const BoardStatus* status, BoardPosition from, BoardPosition to);
 
 //呼び出されるたびに次の移動可能な位置を出力 最後まで到達するとnullPos() (0,0の位置)を返す
-BoardPosition detectMoveSpace(const BoardStatus* status, BoardPosition pos);
+BoardPosition detectMoveSpace(const BoardStatus* board, BoardPosition pos);
 
 //２つの座標で駒を動かす
 //もし動けないところに動かしていたら元の盤面を返す
