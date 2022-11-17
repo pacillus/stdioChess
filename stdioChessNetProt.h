@@ -51,6 +51,8 @@
 #define RES_TYPE_DENIED ("[DENIED]")
 //画面リフレッシュ用のコード
 #define RES_TYPE_REFRESH ("[REFRESH]")
+//ゲーム終了のコード
+#define RES_TYPE_GAME_END ("[GAME_END]")
 
 typedef struct{
     BoardStatus board;

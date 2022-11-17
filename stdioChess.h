@@ -60,8 +60,11 @@ typedef struct{
 	char game_end;
 }BoardStatus;
 
-//何もないまっさらな盤面を用意
+//0で埋めれたデータを用意
 BoardStatus nullGame();
+
+//何もないまっさらな盤面を用意
+BoardStatus emptyBoard();
 
 //ボードをセットする
 //初期化に使ってもよし
@@ -131,5 +134,15 @@ void translateBrdPos(BoardPosition pos, char not[3]);
 
 //駒を動かすコマンドの文法が正しいか
 int isMvCmdValid(const char* command);
+
+//白のキングがチェックされているか
+BoardPosition isWhiteChecked(const BoardStatus *board);
+
+//黒のキングがチェックされているか
+BoardPosition isBlackChecked(const BoardStatus *board);
+
+int isBlackCheckmate(const BoardStatus *board);
+
+int isWhiteCheckmate(const BoardStatus *board);
 
 #endif /* STDIOCHESS_H_ */

@@ -90,7 +90,7 @@ void printSquareContent(char piece, const piece_marker_set set, int markerflag, 
 		strcat(str, marker);
 		printf("│ %s", str);
 	} else if(markerflag == 1){
-			printf("│ %s ", marker);
+		printf("│ %s ", marker);
 	} else{
 		printf("│ %s ", str);
 	}
@@ -188,7 +188,7 @@ void clearBrdMarker(BrdOutputImage* image){
 }
 
 void setMovableMarker(BrdOutputImage* image, BoardPosition mrkrpos){
-	BoardPosition marker = nullPos();;
+	BoardPosition marker = nullPos();
 	while(1){
 		marker = detectMoveSpace(image->board, mrkrpos);
 		if(isOutofBoard(marker)){

@@ -124,6 +124,10 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
         //状態確認用のダミーコマンドの場合
         if(strcmp(cmd_buf, "dummy") == 0){
             assignResponse(order, "", RES_TYPE_REFRESH);
+            return;
+        }
+        if(game->game_end){
+            result = assignResponse(order, "Checkmate! Game end!", RES_TYPE_GAME_END);
         }
 
         //ここにコマンドの処理
@@ -133,7 +137,7 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
         else if (result == 1)
             result = assignResponse(order, "Command denied:You are not a turn player\n", RES_TYPE_DENIED);
         else if (result == 2)
-            result = assignResponse(order, "Command denied:Invalid command. .\n", RES_TYPE_DENIED);
+            result = assignResponse(order, "Command denied:Invalid command. Check the input position for there might be a mistake.\n", RES_TYPE_DENIED);
         else if (result == 3)
             result = assignResponse(order, "Command denied:Target piece is not yours\n", RES_TYPE_DENIED);
         if (1 == result){
@@ -245,7 +249,7 @@ int runGame()
         doCommandProcess(&player2_order, &game, cmd_buf, 2);
     }
 
-    sleep(5);
+    sleep(10);
 
     return 0;
 }
@@ -320,6 +324,13 @@ void *clientInterfaceThread(void *args)
     while (1)
     {
         awaitRequest(&request, soc);
+        if(game->game_end){
+            response.board = *game;
+            strcpy(response.color, color);
+            strcpy(response.message, "Checkmate! Game end!");
+            strcpy(response.response_type, RES_TYPE_GAME_END);
+            sendResponse(&response, soc);
+        }
         if (assignCommand(order, request.command) == 1)
         {
             fprintf(stderr, "Unknown error in assignCommand");
