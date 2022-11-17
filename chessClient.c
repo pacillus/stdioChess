@@ -6,10 +6,8 @@
  *  Modified as chessClient.c on: 2022/11/13
  */
 
-/*to-do:チェスの盤面を描画して最低限動けるようにする
- * ・チェスの盤面は最初数字で書いて後で文字に変換して出力する
- * ・できれば動ける場所の予測とかも
- * ・オンライン対戦!!
+/*to-do:
+ * ・インターフェースの改良s
  * */
 
 /*仕様:少し制限が多いチェス、コマンドで動かす
@@ -33,11 +31,11 @@
  * -キングが倒されても自動でゲームが終了しない
  * -CPU対戦ができない
  * -その他諸々普通のチェスゲームで使える便利な機能
- * 
+ *
  * 通信を行う上で必要なこと
  * ・通信プロトコル
  * ・出力関数
- * 
+ *
  * */
 
 #include "chessClient.h"
@@ -58,16 +56,20 @@
 #include "stdioChessNetProt.h"
 
 #define OUTPUT_BUF 2048
+#define INPUT_BUF 128
 
-void runClient(const char* server_ip){
-	struct hostent  *server_ent;
-	struct sockaddr_in  server;
-	int    soc;  /* descriptor for socket */
-	//char   ip_str[]="127.0.0.1";
-	struct in_addr  ip;
+void runClient(const char *server_ip)
+{
+	struct hostent *server_ent;
+	struct sockaddr_in server;
+	int soc; /* descriptor for socket */
+	// char   ip_str[]="127.0.0.1";
+	struct in_addr ip;
 	//標準出力用バッファ
-	char stdbuf[OUTPUT_BUF];
-	
+	char stdoutbuf[OUTPUT_BUF];
+	//標準入力用バッファ
+	char stdinbuf[INPUT_BUF];
+
 	//受信するレスポンスを格納する変数
 	ChessNetProtResponse response;
 	//送信するリクエストを格納する変数
@@ -76,7 +78,7 @@ void runClient(const char* server_ip){
 	//プレイヤーの色
 	char color[6] = "color";
 
-	memset(stdbuf, 0, OUTPUT_BUF);
+	memset(stdoutbuf, 0, OUTPUT_BUF);
 
 	inet_aton(server_ip, &ip);
 
@@ -86,83 +88,50 @@ void runClient(const char* server_ip){
 	memcpy((char *)&server.sin_addr, &ip, sizeof(ip));
 
 	/* IPv4でストリーム型のソケットを作成  */
-	if((soc = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+	if ((soc = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	{
 		perror("socket");
 		exit(1);
 	}
 
 	/* サーバのアドレスをソケットに設定 */
-	if(connect(soc, (struct sockaddr *)&server, sizeof(server)) == -1){
+	if (connect(soc, (struct sockaddr *)&server, sizeof(server)) == -1)
+	{
 		perror("connect");
 		exit(1);
 	}
 
-
-	
 	awaitResponse(&response, soc);
 	strcpy(color, response.color);
-	//visualizeMessage((char *)&response, sizeof(response));
-	printBoard(stdbuf, &response);
+	printBoard(stdoutbuf, &response);
 
-	if(strcmp(color, "white") == 0){
-		strcpy(request.command, "d2>d4");
-	} else {
-		strcpy(request.command, "d7>d5");
-	}
+	while (!response.board.game_end)
+	{	
+		fgets(stdinbuf, sizeof(stdinbuf), stdin);
+		stdinbuf[strlen(stdinbuf) - 1] = '\0'; 
+		strncpy(request.command, stdinbuf, CMD_LEN);
+		request.command[CMD_LEN - 1] = '\0';
 
-	char res_type[TYP_LEN];
-	memset(res_type, 0, sizeof(res_type));
-	while(strcmp(RES_TYPE_ACCEPTED, res_type) != 0){
+		char res_type[TYP_LEN];
+		memset(res_type, 0, sizeof(res_type));
+		
 		sendRequest(&request, soc);
 		awaitResponse(&response, soc);
 		strcpy(res_type, response.response_type);
-		printBoard(stdbuf, &response);
-		sleep(3);
+		printBoard(stdoutbuf, &response);
+		
 	}
-	
-	if(strcmp(color, "white") == 0){
-		strcpy(request.command, "e2>e4");
-	} else {
-		strcpy(request.command, "d5>e4");
-	}
-
-	memset(res_type, 0, sizeof(res_type));
-	
-	while(strcmp(RES_TYPE_ACCEPTED, res_type) != 0){
-		sendRequest(&request, soc);
-		awaitResponse(&response, soc);
-		strcpy(res_type, response.response_type);
-		printBoard(stdbuf, &response);
-		sleep(3);
-	}
-
-	if(strcmp(color, "white") == 0){
-		strcpy(request.command, "c2>c3");
-	} else {
-		strcpy(request.command, "d8>d5");
-	}
-
-	memset(res_type, 0, sizeof(res_type));
-	
-	while(strcmp(RES_TYPE_ACCEPTED, res_type) != 0){
-		sendRequest(&request, soc);
-		awaitResponse(&response, soc);
-		strcpy(res_type, response.response_type);
-		printBoard(stdbuf, &response);
-		sleep(3);
-	}
-
 	close(soc);
 	return;
 }
 
-
-void printBoard(char* stdbuf, const ChessNetProtResponse *response){
+void printBoard(char *stdbuf, const ChessNetProtResponse *response)
+{
 	BrdOutputImage image = newScrnImage(&response->board, 1);
 	//メッセージを追加
 	//バッファは出力格納するまでは作業場
 	sprintf(stdbuf, "|%s|%s:%s", response->color, response->response_type, response->message);
-	
+
 	addBrdMessage(&image, stdbuf);
 
 	drawBrdImageDfMsgS(stdbuf, &image);
@@ -170,7 +139,7 @@ void printBoard(char* stdbuf, const ChessNetProtResponse *response){
 	write(1, stdbuf, strlen(stdbuf));
 
 	return;
-}	
+}
 
 /*
 int main(){

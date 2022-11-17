@@ -103,4 +103,5 @@ void visualizeMessage(const char *buf, size_t size){
         }
         
     }
+    return;
 }

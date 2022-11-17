@@ -110,11 +110,19 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to);
 //d2>d4のように少し棋譜っぽく命令して移動
 void movePieceCommand(BoardStatus* status,const char* command);
 
+//
+BoardPosition getFromPosByCmd(const char *algbrnot);
+
+BoardPosition getToPosByCmd(const char* albgrnot);
+
+
 //その位置にあるポーンを昇格
 void promotePawn(BoardStatus* status, BoardPosition target, char promote);
 
 //b2,f5などの位置を(2,2),(6,5)等のBoardPositionに変換
 BoardPosition translateAlgbrNot(const char* algbrnot);
+
+
 
 //座標(2,2),(6,5)を記号b2,f5に変換
 //pos:変換する位置

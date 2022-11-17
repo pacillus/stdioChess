@@ -391,15 +391,22 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 }
 
 void movePieceCommand(BoardStatus* status,const char* command){
-
-
 	if(!isMvCmdValid(command)) return;
 
-	BoardPosition from = brdPos(command[0] - 'a' + 1,command[1] - '1' + 1);
-	BoardPosition to = brdPos(command[3] - 'a' + 1,command[4] - '1' + 1);
+	BoardPosition from = getFromPosByCmd(command);
+	BoardPosition to = getToPosByCmd(command);
 	movePiece(status, from, to);
 }
 
+BoardPosition getFromPosByCmd(const char *command){
+	if(!isMvCmdValid(command)) return nullPos();
+	return brdPos(command[0] - 'a' + 1,command[1] - '1' + 1);
+}
+
+BoardPosition getToPosByCmd(const char *command){
+	if(!isMvCmdValid(command)) return nullPos();
+	return brdPos(command[3] - 'a' + 1,command[4] - '1' + 1);
+}
 
 void promotePawn(BoardStatus* status, BoardPosition target, char promote){
 	if(getPiece(status, target) == 'p' && target.y == 8){

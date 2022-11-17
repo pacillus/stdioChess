@@ -39,6 +39,7 @@ typedef struct _StdioChessOrder
 // 0:成功
 // 1:失敗、操作はターンプレイヤーでない
 // 2:失敗、無効な操作
+// 3:失敗、自分のコマでない
 int acceptCommand(BoardStatus *game, const char *cmd, int player);
 
 //クライアントとの通信をマルチスレッドで行うためのスレッド処理
@@ -111,6 +112,29 @@ int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf)
     pthread_mutex_unlock(&(order->mutex));
     resetOrder(order);
     return 0;
+}
+
+// runGameの部品
+//コマンドを処理してゲームに反映させる処理
+void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, int player)
+{
+    int result;
+    if (order->phase == 1){
+        readCommand(order, cmd_buf);
+        //ここにコマンドの処理
+        result = acceptCommand(game, cmd_buf, player);
+        if (result == 0)
+            result = assignResponse(order, "Successfully received the command!\n", RES_TYPE_ACCEPTED);
+        else if (result == 1)
+            result = assignResponse(order, "Command denied:You are not a turn player\n", RES_TYPE_DENIED);
+        else if (result == 2)
+            result = assignResponse(order, "Command denied:Invalid command format\n", RES_TYPE_DENIED);
+        else if (result == 3)
+            result = assignResponse(order, "Command denied:Target piece is not yours\n", RES_TYPE_DENIED);
+        if (1 == result){
+            fprintf(stderr, "Unknown error occured in assignResponse");
+        }
+    }
 }
 
 int runGame()
@@ -210,44 +234,10 @@ int runGame()
         exit(1);
     }
 
-    int result = 0;
     while (!game.game_end)
     {
-        if (player1_order.phase == 1)
-        {
-            readCommand(&player1_order, cmd_buf);
-            //ここにコマンドの処理
-            result = acceptCommand(&game, cmd_buf, 1);
-            if (result == 0)
-                assignResponse(&player1_order, "Successfully received the command!\n", RES_TYPE_ACCEPTED);
-            if (result == 1)
-                assignResponse(&player1_order, "Command denied since you are not a turn player\n", RES_TYPE_DENIED);
-            if (result == 2)
-                assignResponse(&player1_order, "Command denied due to invalid command\n", RES_TYPE_DENIED);
-            if (1 == result)
-            {
-                fprintf(stderr, "Unknown error occured in readCommand");
-            }
-        }
-        if (player2_order.phase == 1)
-        {
-            if (1 == readCommand(&player2_order, cmd_buf))
-            {
-                fprintf(stderr, "Unknown error occured in readCommand");
-            }
-            //ここにコマンドの処理
-            result = acceptCommand(&game, cmd_buf, 2);
-            if (result == 0)
-                result = assignResponse(&player2_order, "Accepted the command and the move was made!\n", RES_TYPE_ACCEPTED);
-            else if (result == 1)
-                result = assignResponse(&player2_order, "Command denied since you are not a turn player\n", RES_TYPE_DENIED);
-            else if (result == 2)
-                result = assignResponse(&player2_order, "Command denied due to invalid command\n", RES_TYPE_DENIED);
-            if (1 == result)
-            {
-                fprintf(stderr, "Unknown error occured in readCommand");
-            }
-        }
+        doCommandProcess(&player1_order, &game, cmd_buf, 1);
+        doCommandProcess(&player2_order, &game, cmd_buf, 2);
     }
 
     sleep(5);
@@ -258,11 +248,17 @@ int runGame()
 int acceptCommand(BoardStatus *game, const char *cmd, int player)
 {
     int turn = game->turn;
-    if (turn % 2 == player % 2)
+    //プレイヤーのコマの色と選んだコマが違うという判定を行う論理式
+    int is_target_black = isPieceBlack(getPiece(game, getFromPosByCmd(cmd)));
+    if (is_target_black ^ (player - 1))
+        return 3;
+    if ((turn + player) % 2 == 0)
     {
         movePieceCommand(game, cmd);
-        if (game->turn == turn + 1)
+        if (game->turn == turn + 1){
             return 0;
+
+        }
         return 2;
     }
     else
@@ -315,15 +311,18 @@ void *clientInterfaceThread(void *args)
 
     sendResponse(&response, soc);
 
-    while (1){
+    while (1)
+    {
         awaitRequest(&request, soc);
-        if (assignCommand(order, request.command) == 1){
+        if (assignCommand(order, request.command) == 1)
+        {
             fprintf(stderr, "Unknown error in assignCommand");
         }
 
         memset(&response, 0, sizeof(response));
         int invalid = 1;
-        while (invalid == 1){
+        while (invalid == 1)
+        {
             invalid = readResponse(order, response.message, response.response_type);
         }
         response.board = *game;
