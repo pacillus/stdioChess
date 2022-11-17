@@ -107,8 +107,13 @@ int canMove(const BoardStatus* status, BoardPosition from, BoardPosition to);
 BoardPosition detectMoveSpace(const BoardStatus* board, BoardPosition pos);
 
 //２つの座標で駒を動かす
-//もし動けないところに動かしていたら元の盤面を返す
+//もし動けないところに動かしていたら元の盤面のまま
 void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to);
+
+//２つの座標で駒を動かす
+//もし動けないところに動かしていたら元の盤面のまま
+//こっちでは自らすることはできないチェック
+void movePieceCheckLimit(BoardStatus* status, BoardPosition from, BoardPosition to);
 
 //d2>d4のように少し棋譜っぽく命令して移動
 void movePieceCommand(BoardStatus* status,const char* command);

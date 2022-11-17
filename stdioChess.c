@@ -422,12 +422,21 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 	return;
 }
 
+void movePieceCheckLimit(BoardStatus* status, BoardPosition from, BoardPosition to){
+	BoardStatus peek = *status;
+	movePiece(&peek, from, to);
+	if(peek.turn % 2 == 1 && isOutofBoard(isBlackChecked(&peek))
+			|| peek.turn % 2 == 0 && isOutofBoard(isWhiteChecked(&peek))){
+		movePiece(status, from, to);
+	}
+}
+
 void movePieceCommand(BoardStatus* status,const char* command){
 	if(!isMvCmdValid(command)) return;
 
 	BoardPosition from = getFromPosByCmd(command);
 	BoardPosition to = getToPosByCmd(command);
-	movePiece(status, from, to);
+	movePieceCheckLimit(status, from, to);
 	
 	if((status->turn % 2 == 0 && isBlackCheckmate(status)) 
 	|| status->turn % 2 == 1 && isWhiteCheckmate(status)){
