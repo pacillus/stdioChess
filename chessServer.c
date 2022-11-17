@@ -121,6 +121,11 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
     int result;
     if (order->phase == 1){
         readCommand(order, cmd_buf);
+        //状態確認用のダミーコマンドの場合
+        if(strcmp(cmd_buf, "dummy") == 0){
+            assignResponse(order, "", RES_TYPE_REFRESH);
+        }
+
         //ここにコマンドの処理
         result = acceptCommand(game, cmd_buf, player);
         if (result == 0)
@@ -128,7 +133,7 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
         else if (result == 1)
             result = assignResponse(order, "Command denied:You are not a turn player\n", RES_TYPE_DENIED);
         else if (result == 2)
-            result = assignResponse(order, "Command denied:Invalid command format\n", RES_TYPE_DENIED);
+            result = assignResponse(order, "Command denied:Invalid command. .\n", RES_TYPE_DENIED);
         else if (result == 3)
             result = assignResponse(order, "Command denied:Target piece is not yours\n", RES_TYPE_DENIED);
         if (1 == result){
@@ -248,6 +253,7 @@ int runGame()
 int acceptCommand(BoardStatus *game, const char *cmd, int player)
 {
     int turn = game->turn;
+
     //プレイヤーのコマの色と選んだコマが違うという判定を行う論理式
     int is_target_black = isPieceBlack(getPiece(game, getFromPosByCmd(cmd)));
     if (is_target_black ^ (player - 1))

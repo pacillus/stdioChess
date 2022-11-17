@@ -49,6 +49,8 @@
 #define RES_TYPE_ACCEPTED ("[ACCEPTED]")
 //リクエスト却下のコード
 #define RES_TYPE_DENIED ("[DENIED]")
+//画面リフレッシュ用のコード
+#define RES_TYPE_REFRESH ("[REFRESH]")
 
 typedef struct{
     BoardStatus board;
