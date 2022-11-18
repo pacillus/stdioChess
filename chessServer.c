@@ -121,13 +121,16 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
     int result;
     if (order->phase == 1){
         readCommand(order, cmd_buf);
-        //状態確認用のダミーコマンドの場合
-        if(strcmp(cmd_buf, "dummy") == 0){
-            assignResponse(order, "", RES_TYPE_REFRESH);
-            return;
-        }
+        
+        //ゲームが終わっていた場合
         if(game->game_end){
             result = assignResponse(order, "Checkmate! Game end!", RES_TYPE_GAME_END);
+            return;
+        }
+        //状態確認用のダミーコマンドの場合
+        if(strcmp(cmd_buf, "refresh") == 0){
+            assignResponse(order, "", RES_TYPE_REFRESH);
+            return;
         }
 
         //ここにコマンドの処理

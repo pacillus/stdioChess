@@ -70,7 +70,7 @@ void drawMarkedBrdImageS(char *buf, const BrdOutputImage* image, BoardPosition p
 	char tmpstr[99];
 	char not[3];
 	translateBrdPos(pos, not);
-	sprintf(tmpstr, "%sの位置にある駒の移動範囲を表示しています", not);
+	sprintf(tmpstr, "Predicting the movement of the piece in %s", not);
 	addBrdMessage(&tmpimg, tmpstr);
 
 	drawBrdImageDfMsgS(buf, &tmpimg, inverted);

@@ -109,6 +109,16 @@ void runClient(const char *server_ip)
 	{	
 		fgets(stdinbuf, sizeof(stdinbuf), stdin);
 		stdinbuf[strlen(stdinbuf) - 1] = '\0'; 
+
+		//クライアント定義済みコマンドの処理
+		if(strlen(stdinbuf) == 0){
+			strcpy(stdinbuf, "refresh");
+		} else if(strncmp("predict", stdinbuf, 7) == 0){
+			BoardPosition pos = translateAlgbrNot(stdinbuf + 7);
+			printMarkedBoard(stdoutbuf, &(response.board), pos, color);
+			continue;
+		}
+
 		strncpy(request.command, stdinbuf, CMD_LEN);
 		request.command[CMD_LEN - 1] = '\0';
 
@@ -135,6 +145,16 @@ void printBoard(char *stdbuf, const ChessNetProtResponse *response)
 	addBrdMessage(&image, stdbuf);
 
 	drawBrdImageDfMsgS(stdbuf, &image, strcmp(response->color, "black") == 0);
+
+	write(1, stdbuf, strlen(stdbuf));
+
+	return;
+}
+
+void printMarkedBoard(char *stdbuf, const BoardStatus *board, BoardPosition pos, const char *color){
+	BrdOutputImage image = newScrnImage(board, 1);
+	
+	drawMarkedBrdImageS(stdbuf, &image, pos, strcmp(color, "black") == 0);
 
 	write(1, stdbuf, strlen(stdbuf));
 
