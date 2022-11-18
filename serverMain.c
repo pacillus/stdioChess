@@ -17,6 +17,8 @@ int main(){
     /*
     BoardStatus game = emptyBoard();
     BrdOutputImage img = newScrnImage(&game, 1);
+    */
+    /*
     game.board[0][0] = 'r';
     game.board[1][0] = 'n';
     game.board[2][0] = 'b';
@@ -49,13 +51,14 @@ int main(){
     game.board[5][7] = 'B';
     game.board[6][7] = 'N';
     game.board[7][7] = 'R';
-
-
-
-    printf("%d\n", isWhiteChecked(&game));
-    printf("%d\n", isWhiteCheckmate(&game));
-    
-    //drawMarkedBrdImage(&img, brdPos(8, 4));
     */
+   
+
+    //printf("%d\n", isWhiteChecked(&game));
+    //printf("%d\n", isWhiteCheckmate(&game));
+    
+    //drawBrdImage(&img);
+    //drawMarkedBrdImage(&img, brdPos(1, 5));
+    
     return 0;
 }

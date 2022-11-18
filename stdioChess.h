@@ -58,6 +58,8 @@ typedef struct{
 	char cst_flag_mask;
 	//1なら終了 0なら続行
 	char game_end;
+	//アンパッサンができる位置
+	BoardPosition en_passant;
 }BoardStatus;
 
 //0で埋めれたデータを用意
@@ -102,6 +104,9 @@ char getPiece(const BoardStatus* status, BoardPosition pos);
 
 //そのコマがtoでしていた場所に動けるか
 int canMove(const BoardStatus* status, BoardPosition from, BoardPosition to);
+
+//そのコマが指定した位置にアンパッサンできるか
+int canEnPassant(const BoardStatus* status, BoardPosition from, BoardPosition to);
 
 //呼び出されるたびに次の移動可能な位置を出力 最後まで到達するとnullPos() (0,0の位置)を返す
 BoardPosition detectMoveSpace(const BoardStatus* board, BoardPosition pos);

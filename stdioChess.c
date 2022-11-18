@@ -90,6 +90,7 @@ BoardStatus startGame(){
 	newgame.cst_flag_mask |= BLACK_QSD_CST_FLAG;
 
 	newgame.game_end = 0;
+	newgame.en_passant = nullPos();
 
 	return newgame;
 }
@@ -239,11 +240,6 @@ int canNMove(const BoardStatus* status,BoardPosition from, BoardPosition to){
 	}
 }
 
-//王同士でチェックの確認してしまう無限ループがあるのでチェック確認しないキングの移動を
-int canKMoveNoCheck(const BoardStatus* status, BoardPosition from, BoardPosition to){
-	
-}
-
 int canKMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	int xoffset,yoffset;
 	xoffset = abs(from.x - to.x);
@@ -352,6 +348,17 @@ int canMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	return 0;
 }
 
+int canEnPassant(const BoardStatus* status, BoardPosition from, BoardPosition to){
+	if(status->en_passant.x == to.x && status->en_passant.y == to.y){
+		if(isPieceWhite(getPiece(status, from))){
+			return to.y - from.y == 1 && abs(from.x - to.x) == 1;
+		} else if(isPieceBlack(getPiece(status, from))){
+			return from.y - to.y == 1 && abs(from.x - to.x) == 1;
+		}
+	}
+	return 0;
+}
+
 void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 	if(canMove(status, from, to)){
 		if((isPieceWhite(getPiece(status, from)) && isWhiteTurn(status))
@@ -383,7 +390,16 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 				status->cst_flag_mask &= ~BLACK_QSD_CST_FLAG;
 			}
 
+			if(abs(from.y - to.y) == 2 && (getPiece(status, from) == 'p' || (getPiece(status, from) == 'P'))){
+				//アンパッサンの処理
+				status->en_passant = brdPos(from.x, (from.y + to.y) / 2);
+				
+			} else{
+				status->en_passant = nullPos();
+			}
+			
 			movePieceNoRule(status, from, to);
+			
 
 			(status -> turn)++;
 		}
@@ -415,8 +431,17 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 				//キングを動かす
 				movePieceNoRule(status, from, to);
 			}
+			status->en_passant = nullPos();
 			(status -> turn)++;
 		}
+	}
+
+	if(canEnPassant(status, from, to)){
+		movePieceNoRule(status, from, to);
+		//アンパッサンされたポーンの除去
+		status->board[to.x - 1][from.y - 1] = ' ';
+		status->en_passant = nullPos();
+		(status -> turn)++;
 	}
 
 	return;
@@ -605,7 +630,7 @@ BoardPosition detectMoveSpace(const BoardStatus* board, BoardPosition pos){
 	static int logj = 1;
 	for(int i = logi; i <= 8; i++, logi++){
 		for(int j = logj; j <= 8; j++, logj++){
-			if(canMove(board, pos, brdPos(i, j)) || canCastle(board, pos, brdPos(i, j))){
+			if(canMove(board, pos, brdPos(i, j)) || canCastle(board, pos, brdPos(i, j)) || canEnPassant(board, pos, brdPos(i, j))){
 				if(logj == 8){
 					 logi++;
 					logj = 1;
