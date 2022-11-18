@@ -316,13 +316,13 @@ int canCastle(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	if(abs(xoffset) != 2) return 0;
 
 	if(xoffset == 2 && from.y == 1 && status->cst_flag_mask & WHITE_KSD_CST_FLAG){
-		return canRMove(status, brdPos(8, 1), brdPos(6,1));
+		return canRMove(status, brdPos(8, 1), brdPos(6,1)) && getPiece(status, brdPos(8, 1)) == 'r';
 	} else if(xoffset == -2 && from.y == 1 && status->cst_flag_mask & WHITE_QSD_CST_FLAG){
-		return canRMove(status, brdPos(1, 1), brdPos(4,1));
+		return canRMove(status, brdPos(1, 1), brdPos(4,1)) && getPiece(status, brdPos(1, 1)) == 'r';
 	}else if(xoffset == 2 && from.y == 8 && status->cst_flag_mask & BLACK_KSD_CST_FLAG){
-		return canRMove(status, brdPos(8, 8), brdPos(6,8));
+		return canRMove(status, brdPos(8, 8), brdPos(6,8)) && getPiece(status, brdPos(8, 8)) == 'R';
 	}else if(xoffset == -2 && from.y == 8 && status->cst_flag_mask & BLACK_QSD_CST_FLAG){
-		return canRMove(status, brdPos(1, 8), brdPos(4,8));
+		return canRMove(status, brdPos(1, 8), brdPos(4,8)) && getPiece(status, brdPos(1, 8)) == 'R';
 	}
 
 	return 0;
@@ -506,6 +506,10 @@ void translateBrdPos(BoardPosition pos, char not[3]){
 }
 
 int isMvCmdValid(const char* command){
+	if(strlen == 7){
+
+	}
+	//普通のコマンド
 	if(strlen(command) != 5){
 		return 0;
 	}

@@ -264,6 +264,7 @@ int acceptCommand(BoardStatus *game, const char *cmd, int player)
         return 3;
     if ((turn + player) % 2 == 0)
     {
+        
         movePieceCommand(game, cmd);
         if (game->turn == turn + 1){
             return 0;

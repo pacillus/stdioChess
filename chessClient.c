@@ -7,7 +7,7 @@
  */
 
 /*to-do:
- * ・インターフェースの改良s
+ * ・インターフェースの改良
  * */
 
 /*仕様:少し制限が多いチェス、コマンドで動かす
@@ -134,7 +134,7 @@ void printBoard(char *stdbuf, const ChessNetProtResponse *response)
 
 	addBrdMessage(&image, stdbuf);
 
-	drawBrdImageDfMsgS(stdbuf, &image);
+	drawBrdImageDfMsgS(stdbuf, &image, strcmp(response->color, "black") == 0);
 
 	write(1, stdbuf, strlen(stdbuf));
 

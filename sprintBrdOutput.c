@@ -28,28 +28,29 @@ void printSquareContentS(char *buf, char piece, const piece_marker_set set, int 
 	return;
 }
 
-void drawBrdImageS(char *buf, const BrdOutputImage* image){
+void drawBrdImageS(char *buf, const BrdOutputImage* image, int inverted){
     sprintf(buf, "\033[H\033[J");
 	strcpy(buf, " ┌───┬───┬───┬───┬───┬───┬───┬───┐\n");
-	for(int i = 0; i < 8; i++){
+	for(int i = inverted ? 7 : 0; inverted ? i > -1 : i < 8; inverted ? i-- : i++){
         buf += strlen(buf);
 		sprintf(buf, "%d", 8 - i);
-		for(int j = 0; j < 8; j++){
+		for(int j = inverted ? 7 : 0; inverted ? j > -1 : j < 8; inverted ? j-- : j++){
 			printSquareContentS(buf, image->board->board[j][7- i], image->charset, image->markers[j][7 - i], image->markertype);
 
 		}
 		strcat(buf, "│\n");
-		if(i != 7) strcat(buf, " ├───┼───┼───┼───┼───┼───┼───┼───┤\n");
+		if(inverted ? i != 0 : i != 7) strcat(buf, " ├───┼───┼───┼───┼───┼───┼───┼───┤\n");
 	}
 	strcat(buf, " └───┴───┴───┴───┴───┴───┴───┴───┘\n");
-	strcat(buf, "   a   b   c   d   e   f   g   h\n");
+	if(!inverted) strcat(buf, "   a   b   c   d   e   f   g   h\n");
+	else strcat(buf, "   h   g   f   e   d   c   b   a\n");
 	for(int i = 0; image->messages[i][0] != '\0'; i++){
         buf += strlen(buf);
 		sprintf(buf, "%s\n",image->messages[i]);
 	}
 }
 
-void drawBrdImageDfMsgS(char *buf, const BrdOutputImage* image){
+void drawBrdImageDfMsgS(char *buf, const BrdOutputImage* image, int inverted){
     BrdOutputImage tmpimg;
 	tmpimg = *image;
 	if(isWhiteTurn(image->board)){
@@ -57,11 +58,11 @@ void drawBrdImageDfMsgS(char *buf, const BrdOutputImage* image){
 	} else{
 		addBrdMessage(&tmpimg, "It is black turn!");
 	}
-	drawBrdImageS(buf, &tmpimg);
+	drawBrdImageS(buf, &tmpimg, inverted);
 	return;
 }
 
-void drawMarkedBrdImageS(char *buf, const BrdOutputImage* image, BoardPosition pos){
+void drawMarkedBrdImageS(char *buf, const BrdOutputImage* image, BoardPosition pos, int inverted){
 	BrdOutputImage tmpimg;
 	tmpimg = *image;
 	setMovableMarker(&tmpimg, pos);
@@ -72,5 +73,5 @@ void drawMarkedBrdImageS(char *buf, const BrdOutputImage* image, BoardPosition p
 	sprintf(tmpstr, "%sの位置にある駒の移動範囲を表示しています", not);
 	addBrdMessage(&tmpimg, tmpstr);
 
-	drawBrdImageDfMsg(&tmpimg);
+	drawBrdImageDfMsgS(buf, &tmpimg, inverted);
 }
