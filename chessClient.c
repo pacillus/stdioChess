@@ -75,10 +75,14 @@ void runClient(const char *server_ip)
 	//送信するリクエストを格納する変数
 	ChessNetProtRequest request;
 
+	//描画情報を記録する構造体
+	BrdOutputImage image;
+
 	//プレイヤーの色
 	char color[6] = "color";
 
 	memset(stdoutbuf, 0, OUTPUT_BUF);
+	image = newScrnImage(&(response.board), 1);
 
 	inet_aton(server_ip, &ip);
 
@@ -103,58 +107,75 @@ void runClient(const char *server_ip)
 
 	awaitResponse(&response, soc);
 	strcpy(color, response.color);
-	printBoard(stdoutbuf, &response);
+	printBoard(stdoutbuf, &image, &response);
 
 	while (!response.board.game_end)
-	{	
+	{
 		fgets(stdinbuf, sizeof(stdinbuf), stdin);
-		stdinbuf[strlen(stdinbuf) - 1] = '\0'; 
+		stdinbuf[strlen(stdinbuf) - 1] = '\0';
 
 		//クライアント定義済みコマンドの処理
-		if(strlen(stdinbuf) == 0){
+		if (strlen(stdinbuf) == 0)
+		{
 			strcpy(stdinbuf, "refresh");
-		} else if(strncmp("predict", stdinbuf, 7) == 0){
+		}
+		else if (strncmp("predict", stdinbuf, 7) == 0)
+		{
 			BoardPosition pos = translateAlgbrNot(stdinbuf + 7);
-			printMarkedBoard(stdoutbuf, &(response.board), pos, color);
+			printMarkedBoard(stdoutbuf, &image, pos, color);
 			continue;
 		}
+		// inputがchangedisplayの時 画面の表示方法を変更
+		else if (strncmp("changedisplay", stdinbuf, 13) == 0){
+				if (stdinbuf[13] == 'l'){
+					setPieceMarker(&image, letter_set);
+				}
+				else if (stdinbuf[13] == 'r'){
+					setPieceMarker(&image, real_set);
+				}
 
+				addBrdMessage(&image, "コマの表示を変更しました");
+
+				drawBrdImageDfMsg(&image);
+
+				clearBrdMessages(&image);
+
+				continue;
+		}
 		strncpy(request.command, stdinbuf, CMD_LEN);
 		request.command[CMD_LEN - 1] = '\0';
 
 		char res_type[TYP_LEN];
 		memset(res_type, 0, sizeof(res_type));
-		
+
 		sendRequest(&request, soc);
 		awaitResponse(&response, soc);
 		strcpy(res_type, response.response_type);
-		printBoard(stdoutbuf, &response);
-		
+		printBoard(stdoutbuf, &image, &response);
 	}
 	close(soc);
 	return;
 }
 
-void printBoard(char *stdbuf, const ChessNetProtResponse *response)
+void printBoard(char *stdbuf, const BrdOutputImage *image, const ChessNetProtResponse *response)
 {
-	BrdOutputImage image = newScrnImage(&response->board, 1);
+	BrdOutputImage tmpimg = *image;
 	//メッセージを追加
 	//バッファは出力格納するまでは作業場
 	sprintf(stdbuf, "|%s|%s:%s", response->color, response->response_type, response->message);
 
-	addBrdMessage(&image, stdbuf);
+	addBrdMessage(&tmpimg, stdbuf);
 
-	drawBrdImageDfMsgS(stdbuf, &image, strcmp(response->color, "black") == 0);
+	drawBrdImageDfMsgS(stdbuf, &tmpimg, strcmp(response->color, "black") == 0);
 
 	write(1, stdbuf, strlen(stdbuf));
 
 	return;
 }
 
-void printMarkedBoard(char *stdbuf, const BoardStatus *board, BoardPosition pos, const char *color){
-	BrdOutputImage image = newScrnImage(board, 1);
-	
-	drawMarkedBrdImageS(stdbuf, &image, pos, strcmp(color, "black") == 0);
+void printMarkedBoard(char *stdbuf, const BrdOutputImage *image, BoardPosition pos, const char *color)
+{
+	drawMarkedBrdImageS(stdbuf, image, pos, strcmp(color, "black") == 0);
 
 	write(1, stdbuf, strlen(stdbuf));
 
