@@ -463,6 +463,10 @@ void movePieceCommand(BoardStatus* status,const char* command){
 	BoardPosition to = getToPosByCmd(command);
 	movePieceCheckLimit(status, from, to);
 	
+	if(strlen(command) == 7){
+		promotePawn(status, to, command[6]);
+	}
+	
 	if((status->turn % 2 == 0 && isBlackCheckmate(status)) 
 	|| status->turn % 2 == 1 && isWhiteCheckmate(status)){
 		status->game_end = 1;
@@ -480,6 +484,7 @@ BoardPosition getToPosByCmd(const char *command){
 }
 
 void promotePawn(BoardStatus* status, BoardPosition target, char promote){
+	if(isPieceWhite(promote)) promote = promote  - 'a' + 'A';
 	if(getPiece(status, target) == 'p' && target.y == 8){
 		if(promote == 'N' || promote == 'B' || promote == 'R' || promote == 'Q'){
 			status->board[target.x - 1][target.y - 1] = promote - 'A' + 'a' ;
@@ -506,11 +511,14 @@ void translateBrdPos(BoardPosition pos, char not[3]){
 }
 
 int isMvCmdValid(const char* command){
-	if(strlen == 7){
-
+	//昇格つきのコマンド
+	if(strlen(command) == 7){
+		if(command[5] != '=' || (!isPieceBlack(command[6]) && !isPieceWhite(command[6]))){	
+			return 0;
+		}
 	}
 	//普通のコマンド
-	if(strlen(command) != 5){
+	if(strlen(command) != 5 && strlen(command) != 7){
 		return 0;
 	}
 	if(command[2] != '>'){

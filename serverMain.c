@@ -14,10 +14,10 @@
 int main(){
     runGame();
     
-    /*
-    BoardStatus game = emptyBoard();
-    BrdOutputImage img = newScrnImage(&game, 1);
-    */
+    
+    //BoardStatus game = emptyBoard();
+    //BrdOutputImage img = newScrnImage(&game, 1);
+    
     /*
     game.board[0][0] = 'r';
     game.board[1][0] = 'n';
