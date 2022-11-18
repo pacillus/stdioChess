@@ -184,15 +184,13 @@ int runGame()
     me.sin_port = htons(PORT);
 
     /* IPv4でストリーム型のソケットを作成  */
-    if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
+    if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0){
         perror("socket");
         exit(1);
     }
 
     /* サーバ(自分)のアドレスをソケットに設定 */
-    if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1)
-    {
+    if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1){
         perror("bind");
         exit(1);
     }
@@ -365,6 +363,8 @@ int connectClient(int soc_waiting)
 
     /* 接続要求が来るまでブロックする */
     soc = accept(soc_waiting, NULL, NULL);
+
+    fprintf(stdout, "player joined\n");
 
     return soc;
 }

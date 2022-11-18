@@ -58,7 +58,7 @@
 #define OUTPUT_BUF 2048
 #define INPUT_BUF 128
 
-void runClient(const char *server_ip)
+void runClient(const char *server_ip, int port)
 {
 	struct hostent *server_ent;
 	struct sockaddr_in server;
@@ -88,7 +88,7 @@ void runClient(const char *server_ip)
 
 	memset((char *)&server, 0, sizeof(server));
 	server.sin_family = AF_INET;
-	server.sin_port = htons(PORT);
+	server.sin_port = htons(port);
 	memcpy((char *)&server.sin_addr, &ip, sizeof(ip));
 
 	/* IPv4でストリーム型のソケットを作成  */
