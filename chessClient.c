@@ -137,7 +137,7 @@ void runClient(const char *server_ip, int port)
 
 				addBrdMessage(&image, "Changed the display of the pieces");
 
-				drawBrdImageDfMsgS(stdoutbuf ,&image, color);
+				drawBrdImageDfMsgS(stdoutbuf ,&image, strcmp(color, "black") == 0 ? 1 : 0);
 
 				clearBrdMessages(&image);
 

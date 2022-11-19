@@ -40,7 +40,7 @@ typedef struct _StdioChessOrder
 // 1:失敗、操作はターンプレイヤーでない
 // 2:失敗、無効な操作
 // 3:失敗、自分のコマでない
-int acceptCommand(BoardStatus *game, const char *cmd, int player);
+int acceptCommand(BoardStatus *game, board_log log, const char *cmd, int player);
 
 //クライアントとの通信をマルチスレッドで行うためのスレッド処理
 void *clientInterfaceThread(void *args);
@@ -116,47 +116,48 @@ int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf)
 
 // runGameの部品
 //コマンドを処理してゲームに反映させる処理
-void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, int player)
+void doCommandProcess(StdioChessOrder *order, BoardStatus *game, board_log log, char *cmd_buf, int player)
 {
     int result;
-    if (order->phase == 1){
+    if (order->phase == 1)
+    {
         readCommand(order, cmd_buf);
-        
+
         //ゲームが終わっていた場合
-        if(game->game_end){
-            /*
-            if(isBlackCheckmate(game))
-            {
-                result = assignResponse(order, "Checkmate! White wins!\nGame over\n", RES_TYPE_GAME_END);
-            }
-            else if(isWhiteCheckmate(game))
-            {
-                result = assignResponse(order, "Checkmate! Black wins!\nGame over\n", RES_TYPE_GAME_END);
-            }
-            else if(isStalemate(game)){
-                result = assignResponse(order, "Stalemate! It's a tie!\nGame over\n", RES_TYPE_GAME_END);
-            }
-             else result = 1;
-            if(result == 1){
-                fprintf(stderr, "Unknown error occured in assignResponse (game end)");
-            }*/
+        if (game->game_end)
+        {
             result = assignResponse(order, "", RES_TYPE_REFRESH);
-            if(result == 1){
+            if (result == 1)
+            {
                 fprintf(stderr, "Unknown error occured in assignResponse (game end)");
             }
             return;
         }
         //状態確認用のダミーコマンドの場合
-        if(strcmp(cmd_buf, "refresh") == 0){
+        if (strcmp(cmd_buf, "refresh") == 0)
+        {
             result = assignResponse(order, "Board updated", RES_TYPE_REFRESH);
-            if(result == 1){
+            if (result == 1)
+            {
                 fprintf(stderr, "Unknown error occured in assignResponse (refresh)");
             }
             return;
         }
 
-        //ここにコマンドの処理
-        result = acceptCommand(game, cmd_buf, player);
+        //やり直しの場合
+        if (strcmp(cmd_buf, "undo") == 0)
+        {
+            if ((game->turn + player) % 2 == 1){
+                *game = *getPreviousBoard(log, game);
+                result = assignResponse(order, "Undo successful!\n", RES_TYPE_ACCEPTED);
+            } else{
+                result = assignResponse(order, "Command denied:You cannot undo once your turn comes back\n", RES_TYPE_DENIED);
+            }
+            return;
+        }
+
+        //ここに移動コマンドの処理
+        result = acceptCommand(game, log, cmd_buf, player);
         if (result == 0)
             result = assignResponse(order, "Successfully received the command!\n", RES_TYPE_ACCEPTED);
         else if (result == 1)
@@ -165,7 +166,8 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
             result = assignResponse(order, "Command denied:Invalid command. Check the input position for there might be a mistake.\n", RES_TYPE_DENIED);
         else if (result == 3)
             result = assignResponse(order, "Command denied:Target piece is not yours\n", RES_TYPE_DENIED);
-        if (1 == result){
+        if (1 == result)
+        {
             fprintf(stderr, "Unknown error occured in assignResponse (in game)");
         }
     }
@@ -198,6 +200,9 @@ int runGame()
 
     //ゲーム本体を用意
     BoardStatus game = startGame();
+    board_log log;
+    clearLog(log);
+    addLog(log, &game);
 
     /* サーバ(自分)のアドレスを sockaddr_in 構造体に格納  */
     memset((char *)&me, 0, sizeof(me));
@@ -206,13 +211,15 @@ int runGame()
     me.sin_port = htons(PORT);
 
     /* IPv4でストリーム型のソケットを作成  */
-    if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0){
+    if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
         perror("socket");
         exit(1);
     }
 
     /* サーバ(自分)のアドレスをソケットに設定 */
-    if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1){
+    if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1)
+    {
         perror("bind");
         exit(1);
     }
@@ -268,16 +275,18 @@ int runGame()
 
     while (!game.game_end)
     {
-        doCommandProcess(&player1_order, &game, cmd_buf, 1);
-        doCommandProcess(&player2_order, &game, cmd_buf, 2);
+        doCommandProcess(&player1_order, &game, log, cmd_buf, 1);
+        doCommandProcess(&player2_order, &game, log, cmd_buf, 2);
     }
 
     //終了処理
     char buf[BUF_LEN];
     int i = 0;
     memset(buf, 0, BUF_LEN);
-    while (strcmp(buf, "close") != 0 && strcmp(buf, "c") != 0){   
-        if(i % 5 == 0){
+    while (strcmp(buf, "close") != 0 && strcmp(buf, "c") != 0)
+    {
+        if (i % 5 == 0)
+        {
             myprintf(buf, "No more process to do in server\nEnter \"close\" or \"c\" to close server\n");
         }
         fgets(buf, BUF_LEN, stdin);
@@ -291,7 +300,7 @@ int runGame()
     return 0;
 }
 
-int acceptCommand(BoardStatus *game, const char *cmd, int player)
+int acceptCommand(BoardStatus *game, board_log log, const char *cmd, int player)
 {
     int turn = game->turn;
 
@@ -301,11 +310,11 @@ int acceptCommand(BoardStatus *game, const char *cmd, int player)
         return 3;
     if ((turn + player) % 2 == 0)
     {
-        
         movePieceCommand(game, cmd);
-        if (game->turn == turn + 1){
+        addLog(log, game);
+        if (game->turn == turn + 1)
+        {
             return 0;
-
         }
         return 2;
     }
@@ -359,20 +368,22 @@ void *clientInterfaceThread(void *args)
     while (1)
     {
         awaitRequest(&request, soc);
-        if(game->game_end){
+        if (game->game_end)
+        {
             response.board = *game;
             strcpy(response.color, color);
             strcpy(response.response_type, RES_TYPE_GAME_END);
 
-            if(isBlackCheckmate(game))
+            if (isBlackCheckmate(game))
             {
                 strcpy(response.message, "Checkmate! White wins!\nGame over\n");
             }
-            else if(isWhiteCheckmate(game))
+            else if (isWhiteCheckmate(game))
             {
                 strcpy(response.message, "Checkmate! Black wins!\nGame over\n");
             }
-            else if(isStalemate(game)){
+            else if (isStalemate(game))
+            {
                 strcpy(response.message, "Stalemate! It's a tie!\nGame over\n");
             }
 
@@ -395,7 +406,7 @@ void *clientInterfaceThread(void *args)
         strcpy(response.color, color);
         sendResponse(&response, soc);
     }
-    
+
     close(soc);
     return NULL;
 }

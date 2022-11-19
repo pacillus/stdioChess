@@ -32,34 +32,11 @@ int assignCommand(StdioChessOrder *order, const char* command);
 //オーダーに設定されているコマンドを読み取る
 int readCommand(StdioChessOrder *order, char* buf);
 
-//オーダーに設定されている
+//
 int assignResponse(StdioChessOrder *order, const char *response, const char *res_type);
 
 int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf);
 
-
-//コマンドリクエストキュー
-//typedef struct CommandQueue CmdQueue;
-
-//空のキューを作成
-//CmdQueue *createCmdQueue();
-
-//キューに追加
-//スレッドセーフ(多分)
-//queue:対象のキュー
-//command:追加するコマンド
-//void enqueue(CmdQueue *queue, const char *command);
-
-//キューから取り出す
-//スレッドセーフ(多分)
-//queue:対象のキュー
-//cmdbuf:文字列を格納するバッファ
-//void dequeue(CmdQueue *queue, char *cmdbuf);
-
-//キューが空かを判定する
-//queue:対象のキュー
-//戻り値:空の時0以外、空でない時0
-//int isCmdQueueEmpty(const CmdQueue *queue);
 
 //サーバーのメイン処理
 int runGame();
