@@ -349,7 +349,19 @@ void *clientInterfaceThread(void *args)
         sendResponse(&response, soc);
     }
 
-    myprintf(stdbuf, "subthread_end\n");
+    //終了処理
+    int i = 0;
+    memset(stdbuf, 0, BUF_LEN);
+    while (strcmp(stdbuf, "quit"));
+    {   
+
+        if(i % 5 == 0){
+            myprintf(stdbuf, "No more process to do in server\nEnter \"close\" to close server");
+        }
+        fgets(&stdbuf, BUF_LEN, stdin);
+        i++;
+    }
+    
     close(soc);
     return NULL;
 }

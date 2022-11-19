@@ -119,40 +119,52 @@ void runClient(const char *server_ip, int port)
 		{
 			strcpy(stdinbuf, "refresh");
 		}
-		else if (strncmp("predict", stdinbuf, 7) == 0)
+		else if (strncmp("predict:", stdinbuf, 8) == 0)
+		//predictの時対象のコマの移動範囲を検知
 		{
-			BoardPosition pos = translateAlgbrNot(stdinbuf + 7);
+			BoardPosition pos = translateAlgbrNot(stdinbuf + 8);
 			printMarkedBoard(stdoutbuf, &image, pos, color);
 			continue;
 		}
 		// inputがchangedisplayの時 画面の表示方法を変更
-		else if (strncmp("changedisplay", stdinbuf, 13) == 0){
-				if (stdinbuf[13] == 'l'){
+		else if (strncmp("changedisplay:", stdinbuf, 14) == 0){
+				if (stdinbuf[14] == 'l'){
 					setPieceMarker(&image, letter_set);
 				}
-				else if (stdinbuf[13] == 'r'){
+				else if (stdinbuf[14] == 'r'){
 					setPieceMarker(&image, real_set);
 				}
 
-				addBrdMessage(&image, "コマの表示を変更しました");
+				addBrdMessage(&image, "Changed the display of the pieces");
 
-				drawBrdImageDfMsg(&image);
+				drawBrdImageDfMsgS(stdoutbuf ,&image, color);
 
 				clearBrdMessages(&image);
 
 				continue;
 		}
+
+		//ここからコマンド送信処理
+		//入力内容をコマンドに設定
 		strncpy(request.command, stdinbuf, CMD_LEN);
 		request.command[CMD_LEN - 1] = '\0';
 
-		char res_type[TYP_LEN];
-		memset(res_type, 0, sizeof(res_type));
-
+		//リクエスト送信
 		sendRequest(&request, soc);
+		//レスポンス待機
 		awaitResponse(&response, soc);
-		strcpy(res_type, response.response_type);
+		//結果表示
 		printBoard(stdoutbuf, &image, &response);
 	}
+
+	//ゲーム終了後画面更新処理
+	if(strcmp(response.response_type, RES_TYPE_GAME_END)){
+		strcpy(request.command, "refresh");
+		sendRequest(&request, soc);
+		awaitResponse(&response, soc);
+		printBoard(stdoutbuf, &image, &response);
+	}
+
 	close(soc);
 	return;
 }

@@ -34,7 +34,6 @@ int main(int argc, char **argv)
         struct hostent *entry = gethostbyname(argv[1]);
         if(entry != NULL){
             strcpy(ip, inet_ntoa(*((struct in_addr *)entry->h_addr_list[0])));
-            fprintf(stdout, "%s\n", ip);
         } else {
             //IPアドレスでもドメインネームでもない文字列を受け取った時
             return 1;

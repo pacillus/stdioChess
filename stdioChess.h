@@ -151,8 +151,13 @@ BoardPosition isWhiteChecked(const BoardStatus *board);
 //黒のキングがチェックされているか
 BoardPosition isBlackChecked(const BoardStatus *board);
 
+//黒のチェックメイトか
 int isBlackCheckmate(const BoardStatus *board);
 
+//白のチェックメイトか
 int isWhiteCheckmate(const BoardStatus *board);
+
+//盤面がステールメイトか
+int isStalemate(const BoardStatus *board);
 
 #endif /* STDIOCHESS_H_ */

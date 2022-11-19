@@ -11,8 +11,14 @@
 #include<stdlib.h>
 #include<string.h>
 
+//その位置に黒いコマがあった場合次の一手で取ることが可能かを判別する関数
+//board:対象の盤面
+//pos:取られるかを判定する位置
 int canBlackBeTaken(const BoardStatus *board, BoardPosition pos);
 
+//その位置に白いコマがあった場合次の一手で取ることが可能かを判別する関数
+//board:対象の盤面
+//pos:取られるかを判定する位置
 int canWhiteBeTaken(const BoardStatus *board, BoardPosition pos);
 
 BoardStatus nullGame(){
@@ -248,8 +254,8 @@ int canKMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	int isblocked = (isPieceWhite(getPiece(status, from)) && isPieceWhite(getPiece(status, to)))
 			|| (isPieceBlack(getPiece(status, from)) && isPieceBlack(getPiece(status, to)));
 	if(isblocked) return 0;
-	int ischecked = (isPieceWhite(getPiece(status, from)) && canWhiteBeTaken(status, to)
-			|| isPieceBlack(getPiece(status, from)) && canBlackBeTaken(status, to));
+	int ischecked = (isPieceWhite(getPiece(status, from)) && canWhiteBeTaken(status, to))
+			|| (isPieceBlack(getPiece(status, from)) && canBlackBeTaken(status, to));
 	if(ischecked) return 0;
 	return 1;
 }
@@ -308,20 +314,36 @@ int canQMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
 }
 
 int canCastle(const BoardStatus* status, BoardPosition from, BoardPosition to){
+	//移動しているのがキングでなければキャッスリング不可
 	if(getPiece(status, from) != 'k' && getPiece(status, from) != 'K') return 0;
+	//y座標が違ったら不可
 	if(to.y != from.y) return 0;
 
+	//x軸の移動距離
 	int xoffset = to.x - from.x;
 
+	//移動距離が2でなければ不可
 	if(abs(xoffset) != 2) return 0;
 
-	if(xoffset == 2 && from.y == 1 && status->cst_flag_mask & WHITE_KSD_CST_FLAG){
+	//白か黒か、キング側かクイーン側か、それぞれのパターンで検証
+	//ルークが最終的な位置まで移動が可能ならキャッスリングも可能という判定
+	if(xoffset == 2 && from.y == 1 && status->cst_flag_mask & WHITE_KSD_CST_FLAG)
+	//白キング側
+	{
 		return canRMove(status, brdPos(8, 1), brdPos(6,1)) && getPiece(status, brdPos(8, 1)) == 'r';
-	} else if(xoffset == -2 && from.y == 1 && status->cst_flag_mask & WHITE_QSD_CST_FLAG){
+	} 
+	else if(xoffset == -2 && from.y == 1 && status->cst_flag_mask & WHITE_QSD_CST_FLAG)
+	//白クイーン側
+	{
 		return canRMove(status, brdPos(1, 1), brdPos(4,1)) && getPiece(status, brdPos(1, 1)) == 'r';
-	}else if(xoffset == 2 && from.y == 8 && status->cst_flag_mask & BLACK_KSD_CST_FLAG){
+	}else if(xoffset == 2 && from.y == 8 && status->cst_flag_mask & BLACK_KSD_CST_FLAG)
+	//黒キング側
+	{
 		return canRMove(status, brdPos(8, 8), brdPos(6,8)) && getPiece(status, brdPos(8, 8)) == 'R';
-	}else if(xoffset == -2 && from.y == 8 && status->cst_flag_mask & BLACK_QSD_CST_FLAG){
+	}
+	else if(xoffset == -2 && from.y == 8 && status->cst_flag_mask & BLACK_QSD_CST_FLAG)
+	//黒クイーン側
+	{
 		return canRMove(status, brdPos(1, 8), brdPos(4,8)) && getPiece(status, brdPos(1, 8)) == 'R';
 	}
 
@@ -450,8 +472,8 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 void movePieceCheckLimit(BoardStatus* status, BoardPosition from, BoardPosition to){
 	BoardStatus peek = *status;
 	movePiece(&peek, from, to);
-	if(peek.turn % 2 == 1 && isOutofBoard(isBlackChecked(&peek))
-			|| peek.turn % 2 == 0 && isOutofBoard(isWhiteChecked(&peek))){
+	if((isWhiteTurn(&peek) && isOutofBoard(isBlackChecked(&peek)))
+			|| (isBlackTurn(&peek) && isOutofBoard(isWhiteChecked(&peek)))){
 		movePiece(status, from, to);
 	}
 }
@@ -467,8 +489,8 @@ void movePieceCommand(BoardStatus* status,const char* command){
 		promotePawn(status, to, command[6]);
 	}
 	
-	if((status->turn % 2 == 0 && isBlackCheckmate(status)) 
-	|| status->turn % 2 == 1 && isWhiteCheckmate(status)){
+	if((isBlackTurn(status) && isBlackCheckmate(status)) 
+	|| (isWhiteTurn(status) && isWhiteCheckmate(status))){
 		status->game_end = 1;
 	}
 }
@@ -634,6 +656,12 @@ int isWhiteCheckmate(const BoardStatus *board){
 	BoardPosition kingpos = isWhiteChecked(board);
 	if(isOutofBoard(kingpos)) return 0;
 	return !canWhiteMove(board);
+}
+
+int isStalemate(const BoardStatus *board){
+	int iswchecked = !isOutofBoard(isWhiteChecked(board));
+	int isbchecked = !isOutofBoard(isBlackChecked(board));
+	return (!canWhiteMove(board) && !iswchecked && isWhiteTurn(board)) || (!canBlackMove(board) && !isbchecked && isBlackTurn(board));
 }
 
 //予測用
