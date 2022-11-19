@@ -124,12 +124,34 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
         
         //ゲームが終わっていた場合
         if(game->game_end){
-            result = assignResponse(order, "Checkmate! Game end!", RES_TYPE_GAME_END);
+            /*
+            if(isBlackCheckmate(game))
+            {
+                result = assignResponse(order, "Checkmate! White wins!\nGame over\n", RES_TYPE_GAME_END);
+            }
+            else if(isWhiteCheckmate(game))
+            {
+                result = assignResponse(order, "Checkmate! Black wins!\nGame over\n", RES_TYPE_GAME_END);
+            }
+            else if(isStalemate(game)){
+                result = assignResponse(order, "Stalemate! It's a tie!\nGame over\n", RES_TYPE_GAME_END);
+            }
+             else result = 1;
+            if(result == 1){
+                fprintf(stderr, "Unknown error occured in assignResponse (game end)");
+            }*/
+            result = assignResponse(order, "", RES_TYPE_REFRESH);
+            if(result == 1){
+                fprintf(stderr, "Unknown error occured in assignResponse (game end)");
+            }
             return;
         }
         //状態確認用のダミーコマンドの場合
         if(strcmp(cmd_buf, "refresh") == 0){
-            assignResponse(order, "", RES_TYPE_REFRESH);
+            result = assignResponse(order, "Board updated", RES_TYPE_REFRESH);
+            if(result == 1){
+                fprintf(stderr, "Unknown error occured in assignResponse (refresh)");
+            }
             return;
         }
 
@@ -144,7 +166,7 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, char *cmd_buf, 
         else if (result == 3)
             result = assignResponse(order, "Command denied:Target piece is not yours\n", RES_TYPE_DENIED);
         if (1 == result){
-            fprintf(stderr, "Unknown error occured in assignResponse");
+            fprintf(stderr, "Unknown error occured in assignResponse (in game)");
         }
     }
 }
@@ -250,7 +272,21 @@ int runGame()
         doCommandProcess(&player2_order, &game, cmd_buf, 2);
     }
 
-    sleep(10);
+    //終了処理
+    char buf[BUF_LEN];
+    int i = 0;
+    memset(buf, 0, BUF_LEN);
+    while (strcmp(buf, "close") != 0 && strcmp(buf, "c") != 0){   
+        if(i % 5 == 0){
+            myprintf(buf, "No more process to do in server\nEnter \"close\" or \"c\" to close server\n");
+        }
+        fgets(buf, BUF_LEN, stdin);
+        //配列終わりに終端文字を入れて安全に
+        buf[BUF_LEN - 1] = '\0';
+        //末尾の改行削除
+        buf[strlen(buf) - 1] = '\0';
+        i++;
+    }
 
     return 0;
 }
@@ -283,8 +319,6 @@ int acceptCommand(BoardStatus *game, const char *cmd, int player)
 void *clientInterfaceThread(void *args)
 {
     int soc = 0; //送受信用のソケット
-    //標準入出力のバッファ
-    char stdbuf[BUF_LEN];
 
     //ゲームの状態
     const BoardStatus *game = NULL;
@@ -303,7 +337,6 @@ void *clientInterfaceThread(void *args)
     pthread_detach(pthread_self());
 
     //初期化
-    memset(stdbuf, 0, BUF_LEN);
     memset(&response, 0, sizeof(response));
     memset(&request, 0, sizeof(request));
 
@@ -329,9 +362,23 @@ void *clientInterfaceThread(void *args)
         if(game->game_end){
             response.board = *game;
             strcpy(response.color, color);
-            strcpy(response.message, "Checkmate! Game end!");
             strcpy(response.response_type, RES_TYPE_GAME_END);
+
+            if(isBlackCheckmate(game))
+            {
+                strcpy(response.message, "Checkmate! White wins!\nGame over\n");
+            }
+            else if(isWhiteCheckmate(game))
+            {
+                strcpy(response.message, "Checkmate! Black wins!\nGame over\n");
+            }
+            else if(isStalemate(game)){
+                strcpy(response.message, "Stalemate! It's a tie!\nGame over\n");
+            }
+
             sendResponse(&response, soc);
+            //最後の送信処理になるのでループを抜ける
+            break;
         }
         if (assignCommand(order, request.command) == 1)
         {
@@ -347,19 +394,6 @@ void *clientInterfaceThread(void *args)
         response.board = *game;
         strcpy(response.color, color);
         sendResponse(&response, soc);
-    }
-
-    //終了処理
-    int i = 0;
-    memset(stdbuf, 0, BUF_LEN);
-    while (strcmp(stdbuf, "quit"));
-    {   
-
-        if(i % 5 == 0){
-            myprintf(stdbuf, "No more process to do in server\nEnter \"close\" to close server");
-        }
-        fgets(&stdbuf, BUF_LEN, stdin);
-        i++;
     }
     
     close(soc);
