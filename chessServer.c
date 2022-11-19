@@ -34,6 +34,31 @@ typedef struct _StdioChessOrder
     pthread_mutex_t mutex;
 } StdioChessOrder;
 
+typedef struct
+{
+    //プレイヤーの通信ソケット
+    int soc;
+    //スレッドのIDを保存する
+    pthread_t player_threadID;
+    //各プレイヤーのゲームとの要求などのやり取りを行うオブジェクト
+    StdioChessOrder *order;
+} ChessPlayer;
+
+typedef struct
+{
+    //通信用
+
+    int soc_waiting; /* listenするソケット */
+    //プレイヤーの情報を保持する構造体
+    ChessPlayer pl[2];
+
+    //ゲーム本体
+    BoardStatus *game;
+    //ゲームのログ
+    board_log log;
+
+} ChessServer;
+
 //コマンドを解釈してよければ実行する関数
 //戻り値:
 // 0:成功
@@ -114,17 +139,73 @@ int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf)
     return 0;
 }
 
+ChessServer *createServer()
+{
+    struct sockaddr_in me; /* サーバ(自分)の情報 */
+
+    ChessServer *new_server = malloc(sizeof(ChessServer));
+
+    new_server->pl[0].order = malloc(sizeof(StdioChessOrder));
+    new_server->pl[1].order = malloc(sizeof(StdioChessOrder));
+    new_server->game = malloc(sizeof(BoardStatus));
+    if(new_server->pl[0].order == NULL || new_server->pl[1].order == NULL || new_server->game == NULL){
+        perror("malloc");
+        exit(1);
+    }
+
+    memset(new_server->pl[0].order, 0, sizeof(*new_server->pl[0].order));
+    memset(new_server->pl[1].order, 0, sizeof(*new_server->pl[1].order));
+    *new_server->game = startGame();
+    clearLog(new_server->log);
+    addLog(new_server->log, new_server->game);
+
+    /* サーバ(自分)のアドレスを sockaddr_in 構造体に格納  */
+    memset((char *)&me, 0, sizeof(me));
+    me.sin_family = AF_INET;
+    me.sin_addr.s_addr = htonl(INADDR_ANY);
+    me.sin_port = htons(PORT);
+
+    /* IPv4でストリーム型のソケットを作成  */
+    if ((new_server->soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    {
+        perror("socket");
+        exit(1);
+    }
+
+    /* サーバ(自分)のアドレスをソケットに設定 */
+    if (bind(new_server->soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1)
+    {
+        perror("bind");
+        exit(1);
+    }
+
+    return new_server;
+}
+
+void deleteServer(ChessServer *server){
+    free(server->pl[0].order);
+    free(server->pl[1].order);
+    free(server->game);
+    free(server);
+}
+
 // runGameの部品
 //コマンドを処理してゲームに反映させる処理
-void doCommandProcess(StdioChessOrder *order, BoardStatus *game, board_log log, char *cmd_buf, int player)
+// void doCommandProcess(StdioChessOrder *order, BoardStatus *game, board_log log, char *cmd_buf, int player)
+void doCommandProcess(ChessServer *server, int player)
 {
     int result;
+    StdioChessOrder *order = server->pl[player].order;
     if (order->phase == 1)
     {
+
+        //コマンドを一時的に保持する変数
+        char cmd_buf[CMD_LEN];
+        memset(cmd_buf, 0, CMD_LEN);
         readCommand(order, cmd_buf);
 
         //ゲームが終わっていた場合
-        if (game->game_end)
+        if (server->game->game_end)
         {
             result = assignResponse(order, "", RES_TYPE_REFRESH);
             if (result == 1)
@@ -147,17 +228,20 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, board_log log, 
         //やり直しの場合
         if (strcmp(cmd_buf, "undo") == 0)
         {
-            if ((game->turn + player) % 2 == 1){
-                *game = *getPreviousBoard(log, game);
+            if ((server->game->turn + player) % 2 == 0)
+            {
+                *server->game = *getPreviousBoard(server->log, server->game);
                 result = assignResponse(order, "Undo successful!\n", RES_TYPE_ACCEPTED);
-            } else{
+            }
+            else
+            {
                 result = assignResponse(order, "Command denied:You cannot undo once your turn comes back\n", RES_TYPE_DENIED);
             }
             return;
         }
 
         //ここに移動コマンドの処理
-        result = acceptCommand(game, log, cmd_buf, player);
+        result = acceptCommand(server->game, server->log, cmd_buf, player);
         if (result == 0)
             result = assignResponse(order, "Successfully received the command!\n", RES_TYPE_ACCEPTED);
         else if (result == 1)
@@ -175,61 +259,63 @@ void doCommandProcess(StdioChessOrder *order, BoardStatus *game, board_log log, 
 
 int runGame()
 {
+    ChessServer *server = createServer();
+
     /*変数宣言*/
     //通信用
-    struct sockaddr_in me; /* サーバ(自分)の情報 */
-    int soc_waiting;       /* listenするソケット */
-    int soc1;
-    int soc2;
+    // struct sockaddr_in me; /* サーバ(自分)の情報 */
+    // int soc_waiting;       /* listenするソケット */
+    // int soc1;
+    // int soc2;
 
     //スレッドのIDを保存する
-    pthread_t player1_threadID;
-    pthread_t player2_threadID;
+    // pthread_t player1_threadID;
+    // pthread_t player2_threadID;
 
     //各プレイヤーのゲームとの要求などのやり取りを行うオブジェクト
-    StdioChessOrder player1_order;
-    StdioChessOrder player2_order;
+    // StdioChessOrder player1_order;
+    // StdioChessOrder player2_order;
 
     //コマンドを一時的に保持する変数
-    char cmd_buf[CMD_LEN];
+    // char cmd_buf[CMD_LEN];
 
     //初期化
-    memset(&player1_order, 0, sizeof(player1_order));
-    memset(&player2_order, 0, sizeof(player2_order));
-    memset(cmd_buf, 0, sizeof(cmd_buf));
+    // memset(&player1_order, 0, sizeof(player1_order));
+    // memset(&player2_order, 0, sizeof(player2_order));
+    // memset(cmd_buf, 0, sizeof(cmd_buf));
 
     //ゲーム本体を用意
-    BoardStatus game = startGame();
-    board_log log;
-    clearLog(log);
-    addLog(log, &game);
+    // BoardStatus game = startGame();
+    // board_log log;
+    // clearLog(log);
+    // addLog(log, &game);
 
     /* サーバ(自分)のアドレスを sockaddr_in 構造体に格納  */
-    memset((char *)&me, 0, sizeof(me));
-    me.sin_family = AF_INET;
-    me.sin_addr.s_addr = htonl(INADDR_ANY);
-    me.sin_port = htons(PORT);
+    // memset((char *)&me, 0, sizeof(me));
+    // me.sin_family = AF_INET;
+    // me.sin_addr.s_addr = htonl(INADDR_ANY);
+    // me.sin_port = htons(PORT);
 
     /* IPv4でストリーム型のソケットを作成  */
-    if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        perror("socket");
-        exit(1);
-    }
+    // if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    //{
+    //     perror("socket");
+    //     exit(1);
+    // }
 
     /* サーバ(自分)のアドレスをソケットに設定 */
-    if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1)
-    {
-        perror("bind");
-        exit(1);
-    }
+    // if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1)
+    //{
+    //     perror("bind");
+    //     exit(1);
+    // }
 
     //通信待機
-    soc1 = connectClient(soc_waiting);
-    soc2 = connectClient(soc_waiting);
+    server->pl[0].soc = connectClient(server->soc_waiting);
+    server->pl[1].soc = connectClient(server->soc_waiting);
 
     //待ち受け用ソケットを閉じる
-    close(soc_waiting);
+    close(server->soc_waiting);
 
     //スレッド引数
     CliIntThreadArgs *thread_args;
@@ -243,12 +329,12 @@ int runGame()
     }
 
     //引数用構造体に代入
-    thread_args->soc = soc1;
-    thread_args->game = &game;
-    thread_args->order = &player1_order;
+    thread_args->soc = server->pl[0].soc;
+    thread_args->game = server->game;
+    thread_args->order = server->pl[0].order;
     strcpy(thread_args->color, "white");
 
-    if (pthread_create(&player1_threadID, NULL, clientInterfaceThread, (void *)thread_args) != 0)
+    if (pthread_create(&(server->pl[0].player_threadID), NULL, clientInterfaceThread, (void *)thread_args) != 0)
     {
         fprintf(stderr, "pthread_create() failed¥n");
         exit(1);
@@ -262,24 +348,30 @@ int runGame()
     }
 
     //引数用構造体に代入
-    thread_args->soc = soc2;
-    thread_args->game = &game;
-    thread_args->order = &player2_order;
+    thread_args->soc = server->pl[1].soc;
+    thread_args->game = server->game;
+    thread_args->order = server->pl[1].order;
     strcpy(thread_args->color, "black");
 
-    if (pthread_create(&player2_threadID, NULL, clientInterfaceThread, (void *)thread_args) != 0)
+    if (pthread_create(&(server->pl[1].player_threadID), NULL, clientInterfaceThread, (void *)thread_args) != 0)
     {
         fprintf(stderr, "pthread_create() failed¥n");
         exit(1);
     }
 
-    while (!game.game_end)
+    while (!server->game->game_end)
     {
-        doCommandProcess(&player1_order, &game, log, cmd_buf, 1);
-        doCommandProcess(&player2_order, &game, log, cmd_buf, 2);
+        //doCommandProcess(&player1_order, &game, log, cmd_buf, 1);
+        doCommandProcess(server, 0);
+        //doCommandProcess(&player2_order, &game, log, cmd_buf, 2);
+        doCommandProcess(server, 1);
     }
 
+    
+
     //終了処理
+    deleteServer(server);
+
     char buf[BUF_LEN];
     int i = 0;
     memset(buf, 0, BUF_LEN);
@@ -306,9 +398,9 @@ int acceptCommand(BoardStatus *game, board_log log, const char *cmd, int player)
 
     //プレイヤーのコマの色と選んだコマが違うという判定を行う論理式
     int is_target_black = isPieceBlack(getPiece(game, getFromPosByCmd(cmd)));
-    if (is_target_black ^ (player - 1))
+    if (is_target_black ^ player)
         return 3;
-    if ((turn + player) % 2 == 0)
+    if ((turn + player) % 2 == 1)
     {
         movePieceCommand(game, cmd);
         addLog(log, game);
@@ -406,6 +498,7 @@ void *clientInterfaceThread(void *args)
         strcpy(response.color, color);
         sendResponse(&response, soc);
     }
+
 
     close(soc);
     return NULL;

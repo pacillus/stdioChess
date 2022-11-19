@@ -1,6 +1,7 @@
 #include "sprintBrdOutput.h"
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "boardOutput.h"
@@ -51,27 +52,29 @@ void drawBrdImageS(char *buf, const BrdOutputImage* image, int inverted){
 }
 
 void drawBrdImageDfMsgS(char *buf, const BrdOutputImage* image, int inverted){
-    BrdOutputImage tmpimg;
-	tmpimg = *image;
-	if(isWhiteTurn(image->board)){
-		addBrdMessage(&tmpimg, "It is white turn!");
+    BrdOutputImage *tmpimg = malloc(sizeof(BrdOutputImage));
+	*tmpimg = *image;
+	if(isWhiteTurn(tmpimg->board)){
+		addBrdMessage(tmpimg, "It is white turn!");
 	} else{
-		addBrdMessage(&tmpimg, "It is black turn!");
+		addBrdMessage(tmpimg, "It is black turn!");
 	}
-	drawBrdImageS(buf, &tmpimg, inverted);
+	drawBrdImageS(buf, tmpimg, inverted);
+	free(tmpimg);
 	return;
 }
 
 void drawMarkedBrdImageS(char *buf, const BrdOutputImage* image, BoardPosition pos, int inverted){
-	BrdOutputImage tmpimg;
-	tmpimg = *image;
-	setMovableMarker(&tmpimg, pos);
+	BrdOutputImage *tmpimg = malloc(sizeof(BrdOutputImage));
+	*tmpimg = *image;
+	setMovableMarker(tmpimg, pos);
 
-	char tmpstr[99];
+	char tmpstr[MES_LEN];
 	char not[3];
 	translateBrdPos(pos, not);
 	sprintf(tmpstr, "Predicting the movement of the piece in %s", not);
-	addBrdMessage(&tmpimg, tmpstr);
+	addBrdMessage(tmpimg, tmpstr);
 
-	drawBrdImageDfMsgS(buf, &tmpimg, inverted);
+	drawBrdImageDfMsgS(buf, tmpimg, inverted);
+	free(tmpimg);
 }

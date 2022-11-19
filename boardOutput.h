@@ -11,19 +11,21 @@
 
 #include"stdioChess.h"
 
+#define MES_LEN 128
+
 //コマとして描画する文字の集まり
 typedef char* piece_marker_set[12];
 
 typedef struct{
 	//つけるメッセージ0から順番に上から描画
-	char messages[9][99];
+	char messages[9][MES_LEN];
 	const BoardStatus* board;
 	int markers[8][8];
 	piece_marker_set charset;
 	char markertype[10];
 	//横に数字のガイドをつけるか否か
 	//1の時つける
-	int not_guide_flag;
+	int guide_flag;
 
 } BrdOutputImage;
 
@@ -41,12 +43,15 @@ extern const piece_marker_set real_set;
 BrdOutputImage newScrnImage(const BoardStatus* board, int guideflag);
 
 //imageに基づき画面を描画
+//非推奨 sprintBrdOutput.hのもので代用
 void drawBrdImage(const BrdOutputImage* image);
 
 //デフォのメッセージ付きの描画
+//非推奨 sprintBrdOutput.hのもので代用
 void drawBrdImageDfMsg(const BrdOutputImage* image);
 
 //行動可能な範囲を表示した画面の描画
+//非推奨 sprintBrdOutput.hのもので代用
 void drawMarkedBrdImage(const BrdOutputImage* image, BoardPosition pos);
 
 //画面にメッセージを追加

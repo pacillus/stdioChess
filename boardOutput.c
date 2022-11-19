@@ -41,7 +41,7 @@ const piece_marker_set real_set = {"♟","♞","♝","♜","♛","♚","♙","�
 //関数の実装-------------------------------------------------------
 BrdOutputImage newScrnImage(const BoardStatus* board, int guideflag){
 	BrdOutputImage newimage = {{}, board, {}, {}, "x", 1};
-	newimage.not_guide_flag = guideflag;
+	newimage.guide_flag = guideflag;
 	for(int i = 0; i < 12; i++){
 		newimage.charset[i] = letter_set[i];
 	}
@@ -72,7 +72,7 @@ void copyScrnImage(const BrdOutputImage* from, BrdOutputImage* to){
 		}
 	}
 
-	to->not_guide_flag = from->not_guide_flag;
+	to->guide_flag = from->guide_flag;
 
 	to->status = from->status;
 }
@@ -150,7 +150,7 @@ void drawMarkedBrdImage(const BrdOutputImage* image, BoardPosition pos){
 	tmpimg = *image;
 	setMovableMarker(&tmpimg, pos);
 
-	char tmpstr[99];
+	char tmpstr[MES_LEN];
 	char not[3];
 	translateBrdPos(pos, not);
 	sprintf(tmpstr, "%sの位置にある駒の移動範囲を表示しています", not);
@@ -168,7 +168,7 @@ void addBrdMessage(BrdOutputImage* image, const char* msg){
 
 void clearBrdMessages(BrdOutputImage* image){
 	for(int i = 0; image->messages[i][0] != '\0'; i++){
-		image->messages[i][0] = '\0';
+		memset(image->messages[i], 0, MES_LEN);
 	}
 }
 

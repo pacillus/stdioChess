@@ -37,7 +37,6 @@ int assignResponse(StdioChessOrder *order, const char *response, const char *res
 
 int readResponse(StdioChessOrder *order, char *buf, char *res_typ_buf);
 
-
 //サーバーのメイン処理
 int runGame();
 

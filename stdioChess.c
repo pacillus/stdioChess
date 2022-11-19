@@ -35,10 +35,6 @@ BoardStatus emptyBoard(){
 		}
 	}
 	emptygame.cst_flag_mask = '\0';
-	//emptygame.cst_flag_mask |= WHITE_KSD_CST_FLAG;
-	//emptygame.cst_flag_mask |= WHITE_QSD_CST_FLAG;
-	//emptygame.cst_flag_mask |= BLACK_KSD_CST_FLAG;
-	//emptygame.cst_flag_mask |= BLACK_QSD_CST_FLAG;
 	emptygame.game_end = 0;
 	return emptygame;
 }
@@ -100,21 +96,6 @@ BoardStatus startGame(){
 
 	return newgame;
 }
-
-/*
- * //知識不足で作ったけど必要ないので削除
-void copyBoard(const BoardStatus* status, BoardStatus* to){
-	for(int i = 0; i < 8; i++){
-		for(int j = 0; j < 8; j++){
-			to->board[i][j] = status->board[i][j];
-		}
-	}
-	to->turn = status->turn;
-	to->white_ksd_cst_flag =status->white_ksd_cst_flag;
-	to->white_qsd_cst_flag =status->white_qsd_cst_flag;
-	to->black_ksd_cst_flag =status->black_ksd_cst_flag;
-	to->black_qsd_cst_flag =status->black_qsd_cst_flag;
-}*/
 
 int isWhiteTurn(const BoardStatus* status){
 	return status -> turn % 2 == 1;

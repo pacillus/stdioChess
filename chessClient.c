@@ -137,7 +137,8 @@ void runClient(const char *server_ip, int port)
 
 				addBrdMessage(&image, "Changed the display of the pieces");
 
-				drawBrdImageDfMsgS(stdoutbuf ,&image, strcmp(color, "black") == 0 ? 1 : 0);
+				drawBrdImageS(stdoutbuf ,&image, strcmp(color, "black") == 0);
+				write(1, stdoutbuf, strlen(stdoutbuf));
 
 				clearBrdMessages(&image);
 
@@ -171,14 +172,18 @@ void runClient(const char *server_ip, int port)
 
 void printBoard(char *stdbuf, const BrdOutputImage *image, const ChessNetProtResponse *response)
 {
-	BrdOutputImage tmpimg = *image;
+	//関数内の変数はその後使われなくなると引数に渡したとしても解放されてしまう
+	//なのでmallocで
+	BrdOutputImage *tmpimg = malloc(sizeof(BrdOutputImage));
+	*tmpimg = *image;
 	//メッセージを追加
 	//バッファは出力格納するまでは作業場
 	sprintf(stdbuf, "|%s|%s:%s", response->color, response->response_type, response->message);
 
-	addBrdMessage(&tmpimg, stdbuf);
+	addBrdMessage(tmpimg, stdbuf);
 
-	drawBrdImageDfMsgS(stdbuf, &tmpimg, strcmp(response->color, "black") == 0);
+	drawBrdImageDfMsgS(stdbuf, tmpimg, strcmp(response->color, "black") == 0);
+	free(tmpimg);
 
 	write(1, stdbuf, strlen(stdbuf));
 

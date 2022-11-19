@@ -106,9 +106,10 @@ void sendRequest(ChessNetProtRequest *request, int socket);
 void awaitRequest(ChessNetProtRequest *request, int socket);
 
 //メッセージの中身をバイト列で画面表示
+//エラーでるけど原因不明
 //ツールを使って生データを確認する用
 //buf:対象のバイト列
 //size:読み込む大きさ
-void visualizeMessage(const char *buf, size_t size);
+void visualizeMessage(const void *buf, size_t size);
 
 #endif //STDIOCHESSNETPROT_H_
