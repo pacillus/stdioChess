@@ -50,6 +50,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "boardLog.h"
 #include "boardOutput.h"
 #include "stdioChess.h"
 #include "sprintBrdOutput.h"
@@ -57,6 +58,8 @@
 
 #define OUTPUT_BUF 2048
 #define INPUT_BUF 128
+
+void emulateMoves(char *stdinbuf , char *stdoutbuf, const BoardStatus *board, const char *color);
 
 const char input[][8] = {
 	"e2 e4",
@@ -183,10 +186,10 @@ void runClient(const char *server_ip, int port)
 
 	while (response.board.gmstat == GAME_PLAYING)
 	{
-		//fgets(stdinbuf, sizeof(stdinbuf), stdin);
-		//stdinbuf[strlen(stdinbuf) - 1] = '\0';
-		usleep(rand() % 1000001);
-		autoinput(stdinbuf, response.board.turn);
+		fgets(stdinbuf, sizeof(stdinbuf), stdin);
+		stdinbuf[strlen(stdinbuf) - 1] = '\0';
+		//usleep(rand() % 1000001);
+		//autoinput(stdinbuf, response.board.turn);
 
 		//クライアント定義済みコマンドの処理
 		if (strlen(stdinbuf) == 0)
@@ -201,7 +204,8 @@ void runClient(const char *server_ip, int port)
 			continue;
 		}
 		// inputがchangedisplayの時 画面の表示方法を変更
-		else if (strncmp("changedisplay:", stdinbuf, 14) == 0){
+		else if (strncmp("changedisplay:", stdinbuf, 14) == 0)
+		{
 				if (stdinbuf[14] == 'l'){
 					setPieceMarker(&image, letter_set);
 				}
@@ -217,6 +221,10 @@ void runClient(const char *server_ip, int port)
 				clearBrdMessages(&image);
 
 				continue;
+		}
+		else if(strcmp("emulate", stdinbuf) == 0){
+			emulateMoves(stdinbuf, stdoutbuf, &response.board, color);
+			continue;
 		}
 		
 
@@ -278,4 +286,96 @@ void printMarkedBoard(char *stdbuf, const BrdOutputImage *image, BoardPosition p
 	write(1, stdbuf, strlen(stdbuf));
 
 	return;
+}
+
+void emulateMoves(char *stdinbuf , char *stdoutbuf, const BoardStatus *board, const char *color){
+	//変数の宣言初期化
+	BoardStatus *emulator = malloc(sizeof(BoardStatus));
+	*emulator = *board;
+
+	BrdOutputImage *img = malloc(sizeof(BrdOutputImage));
+	*img = newScrnImage(emulator, 1);
+	addBrdMessage(img, "Now in emulate mode\n");
+	addBrdMessage(img, "Enter \"quit\" or \"q\" to go back");
+
+	board_log log;
+	clearLog(log);
+	addLog(log, emulator);
+
+	int inverted = strcmp(color, "black") == 0;
+
+	drawBrdImageDfMsgS(stdoutbuf, img, inverted);
+	write(1, stdoutbuf, strlen(stdoutbuf));
+
+	memset(stdinbuf, 0, INPUT_BUF);
+	while(strcmp(stdinbuf, "quit") != 0 && strcmp(stdinbuf, "q") != 0){
+		fgets(stdinbuf, INPUT_BUF, stdin);
+		stdinbuf[strlen(stdinbuf) - 1] = '\0';
+		// predictの時対象のコマの移動範囲を検知
+		if (strncmp("predict:", stdinbuf, 8) == 0)
+		{
+			BoardPosition pos = translateAlgbrNot(stdinbuf + 8);
+			printMarkedBoard(stdoutbuf, img, pos, color);
+			continue;
+		}
+		else if (strcmp("undo", stdinbuf) == 0 && emulator->turn > board->turn)
+		{
+			*emulator = *getPreviousBoard(log, emulator);
+
+			drawBrdImageDfMsgS(stdoutbuf, img, inverted);
+			write(1, stdoutbuf, strlen(stdoutbuf));
+			continue;
+		}
+		//inputがrestartの時 ゲームを初期状態に戻す
+		else if(strcmp("restart", stdinbuf) == 0){
+			*emulator = *board;
+			*img = newScrnImage(emulator, 1);
+
+			clearLog(log);
+
+			addLog(log, emulator);
+
+			drawBrdImageDfMsgS(stdoutbuf, img, inverted);
+			write(1, stdoutbuf, strlen(stdoutbuf));
+			continue;
+		}
+		// inputがchangedisplayの時 画面の表示方法を変更
+		else if (strncmp("changedisplay:", stdinbuf, 14) == 0)
+		{
+				if (stdinbuf[14] == 'l'){
+					setPieceMarker(img, letter_set);
+				}
+				else if (stdinbuf[14] == 'r'){
+					setPieceMarker(img, real_set);
+				}
+
+				addBrdMessage(img, "Changed the display of the pieces");
+
+				drawBrdImageS(stdoutbuf , img, inverted);
+				write(1, stdoutbuf, strlen(stdoutbuf));
+
+				clearBrdMessages(img);
+				addBrdMessage(img, "Now in emulate mode\n");
+				addBrdMessage(img, "Enter \"quit\" or \"q\" to go back");
+
+				continue;
+		}
+		//普通のコマンドの時 間違った文法でも変化しないで終わる
+		else {
+			//移動コマンドの表記が正規でなければ
+			if(strlen(stdinbuf) == 5 && stdinbuf[2] == ' '){
+				stdinbuf[2] = '>';
+			}
+			movePieceCommand(emulator, stdinbuf);
+
+			addLog(log, emulator);
+
+			drawBrdImageDfMsgS(stdoutbuf, img, inverted);
+			write(1, stdoutbuf, strlen(stdoutbuf));
+		}
+
+	}
+
+	free(emulator);
+	free(img);
 }

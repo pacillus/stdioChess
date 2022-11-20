@@ -226,6 +226,11 @@ void doCommandProcess(ChessServer *server, int player)
         //やり直しの場合
         if (strcmp(cmd_buf, "undo") == 0)
         {
+            //1ターン目以前だったら
+            if(server->game->turn <= 1){
+                result = assignResponse(order, "Command denied:You cannot undo before the first turn\n", RES_TYPE_DENIED);
+                return;
+            }
             if ((server->game->turn + player) % 2 == 0)
             {
                 *server->game = *getPreviousBoard(server->log, server->game);

@@ -470,18 +470,6 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 	return;
 }
 
-/*
-void movePieceCheckLimit(BoardStatus* status, BoardPosition from, BoardPosition to){
-	BoardStatus *peek = malloc(sizeof(BoardStatus));
-	*peek = *status;
-	movePiece(&peek, from, to);
-	if((isWhiteTurn(peek) && isOutofBoard(isBlackChecked(peek)))
-			|| (isBlackTurn(peek) && isOutofBoard(isWhiteChecked(peek)))){
-		movePiece(status, from, to);
-	}
-	free(peek);
-}*/
-
 void movePieceCommand(BoardStatus* status,const char* command){
 	if(!isMvCmdValid(command)) return;
 
@@ -494,6 +482,7 @@ void movePieceCommand(BoardStatus* status,const char* command){
 	}
 	
 	/*
+	//未解決のバグ用に取っておくように
 	if((isBlackTurn(status) && isBlackCheckmate(status)) 
 			|| (isWhiteTurn(status) && isWhiteCheckmate(status))
 			|| isStalemate(status)){
