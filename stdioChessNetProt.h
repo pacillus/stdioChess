@@ -98,7 +98,6 @@ void awaitResponse(ChessNetProtResponse *response, int socket);
 void sendRequest(ChessNetProtRequest *request, int socket);
 
 //リクエストの受信を待機する
-//サーバーからゲーム開始のメッセージが来るのを待機する
 //-引数-
 //request:リクエストの構造体を格納する変数
 //socket:開始待機をするソケット

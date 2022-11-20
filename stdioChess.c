@@ -35,7 +35,7 @@ BoardStatus emptyBoard(){
 		}
 	}
 	emptygame.cst_flag_mask = '\0';
-	emptygame.game_end = 0;
+	emptygame.gmstat = GAME_PLAYING;
 	return emptygame;
 }
 
@@ -91,7 +91,7 @@ BoardStatus startGame(){
 	newgame.cst_flag_mask |= BLACK_KSD_CST_FLAG;
 	newgame.cst_flag_mask |= BLACK_QSD_CST_FLAG;
 
-	newgame.game_end = 0;
+	newgame.gmstat = GAME_PLAYING;
 	newgame.en_passant = nullPos();
 
 	return newgame;
@@ -227,18 +227,28 @@ int canNMove(const BoardStatus* status,BoardPosition from, BoardPosition to){
 	}
 }
 
+//移動した場合チェックになるか
+int willKingBeChecked(const BoardStatus* status, BoardPosition from, BoardPosition to){
+	BoardStatus *peek = malloc(sizeof(BoardStatus));
+	*peek = *status;
+	//コピーで動かしてみる
+	movePieceNoRule(peek, from, to);
+	
+	int ischecked = (isPieceBlack(getPiece(status, from)) && !isOutofBoard(isBlackChecked(peek)))
+			|| (isPieceWhite(getPiece(status, from)) && !isOutofBoard(isWhiteChecked(peek)));
+	free(peek);
+	return ischecked;
+}
+
 int canKMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	int xoffset,yoffset;
 	xoffset = abs(from.x - to.x);
 	yoffset = abs(from.y - to.y);
-	if(!(xoffset + yoffset > 0 && xoffset <= 1 && yoffset <= 1)) return 0;
+	if(!(xoffset + yoffset != 0 && xoffset <= 1 && yoffset <= 1)) return 0;
 	int isblocked = (isPieceWhite(getPiece(status, from)) && isPieceWhite(getPiece(status, to)))
 			|| (isPieceBlack(getPiece(status, from)) && isPieceBlack(getPiece(status, to)));
 	if(isblocked) return 0;
-	int ischecked = (isPieceWhite(getPiece(status, from)) && canWhiteBeTaken(status, to))
-			|| (isPieceBlack(getPiece(status, from)) && canBlackBeTaken(status, to));
-	if(ischecked) return 0;
-	return 1;
+	return !willKingBeChecked(status, from, to);
 }
 
 
@@ -311,27 +321,27 @@ int canCastle(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	if(xoffset == 2 && from.y == 1 && status->cst_flag_mask & WHITE_KSD_CST_FLAG)
 	//白キング側
 	{
-		return canRMove(status, brdPos(8, 1), brdPos(6,1)) && getPiece(status, brdPos(8, 1)) == 'r';
+		return canRMove(status, brdPos(8, 1), brdPos(6,1)) && getPiece(status, brdPos(8, 1)) == 'r' && !willKingBeChecked(status, from, to);
 	} 
 	else if(xoffset == -2 && from.y == 1 && status->cst_flag_mask & WHITE_QSD_CST_FLAG)
 	//白クイーン側
 	{
-		return canRMove(status, brdPos(1, 1), brdPos(4,1)) && getPiece(status, brdPos(1, 1)) == 'r';
+		return canRMove(status, brdPos(1, 1), brdPos(4,1)) && getPiece(status, brdPos(1, 1)) == 'r' && !willKingBeChecked(status, from, to);
 	}else if(xoffset == 2 && from.y == 8 && status->cst_flag_mask & BLACK_KSD_CST_FLAG)
 	//黒キング側
 	{
-		return canRMove(status, brdPos(8, 8), brdPos(6,8)) && getPiece(status, brdPos(8, 8)) == 'R';
+		return canRMove(status, brdPos(8, 8), brdPos(6,8)) && getPiece(status, brdPos(8, 8)) == 'R' && !willKingBeChecked(status, from, to);
 	}
 	else if(xoffset == -2 && from.y == 8 && status->cst_flag_mask & BLACK_QSD_CST_FLAG)
 	//黒クイーン側
 	{
-		return canRMove(status, brdPos(1, 8), brdPos(4,8)) && getPiece(status, brdPos(1, 8)) == 'R';
+		return canRMove(status, brdPos(1, 8), brdPos(4,8)) && getPiece(status, brdPos(1, 8)) == 'R' && !willKingBeChecked(status, from, to);
 	}
 
 	return 0;
 }
 
-int canMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
+int canMoveNoPeek(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	char piece = getPiece(status, from);
 	if(piece == 'p'){
 		return canWPMove(status, from, to);
@@ -348,7 +358,17 @@ int canMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
 	} else if(piece == 'q' || piece == 'Q'){
 		return canQMove(status, from, to);
 	}
+
 	return 0;
+
+}
+
+int canMove(const BoardStatus* status, BoardPosition from, BoardPosition to){
+	if(!canMoveNoPeek(status, from, to)){
+		return 0;
+	}
+	
+	return !willKingBeChecked(status, from, to);
 }
 
 int canEnPassant(const BoardStatus* status, BoardPosition from, BoardPosition to){
@@ -450,29 +470,40 @@ void movePiece(BoardStatus* status, BoardPosition from, BoardPosition to){
 	return;
 }
 
+/*
 void movePieceCheckLimit(BoardStatus* status, BoardPosition from, BoardPosition to){
-	BoardStatus peek = *status;
+	BoardStatus *peek = malloc(sizeof(BoardStatus));
+	*peek = *status;
 	movePiece(&peek, from, to);
-	if((isWhiteTurn(&peek) && isOutofBoard(isBlackChecked(&peek)))
-			|| (isBlackTurn(&peek) && isOutofBoard(isWhiteChecked(&peek)))){
+	if((isWhiteTurn(peek) && isOutofBoard(isBlackChecked(peek)))
+			|| (isBlackTurn(peek) && isOutofBoard(isWhiteChecked(peek)))){
 		movePiece(status, from, to);
 	}
-}
+	free(peek);
+}*/
 
 void movePieceCommand(BoardStatus* status,const char* command){
 	if(!isMvCmdValid(command)) return;
 
 	BoardPosition from = getFromPosByCmd(command);
 	BoardPosition to = getToPosByCmd(command);
-	movePieceCheckLimit(status, from, to);
+	movePiece(status, from, to);
 	
 	if(strlen(command) == 7){
 		promotePawn(status, to, command[6]);
 	}
 	
+	/*
 	if((isBlackTurn(status) && isBlackCheckmate(status)) 
-	|| (isWhiteTurn(status) && isWhiteCheckmate(status))){
-		status->game_end = 1;
+			|| (isWhiteTurn(status) && isWhiteCheckmate(status))
+			|| isStalemate(status)){
+		fprintf(stderr, "wtf");
+	}*/
+
+	if(isBlackCheckmate(status)
+			||  isWhiteCheckmate(status)
+			|| isStalemate(status)){
+		status->gmstat = GAME_END;
 	}
 }
 
@@ -538,7 +569,7 @@ int canBlackBeTaken(const BoardStatus *board, BoardPosition pos){
 		for(int j = 0; j <= 8; j++){
 			BoardPosition enemy = brdPos(i, j);
 			if(isPieceWhite(getPiece(board, enemy))){
-				if(canMove(board, enemy, pos)){
+				if(canMoveNoPeek(board, enemy, pos)){
 					return 1;
 				}				
 			}
@@ -552,7 +583,7 @@ int canWhiteBeTaken(const BoardStatus *board, BoardPosition pos){
 		for(int j = 0; j <= 8; j++){
 			BoardPosition enemy = brdPos(i, j);
 			if(isPieceBlack(getPiece(board, enemy))){
-				if(canMove(board, enemy, pos)){
+				if(canMoveNoPeek(board, enemy, pos)){
 					return 1;
 				}				
 			}
@@ -593,9 +624,7 @@ int canBlackMove(const BoardStatus *board){
 				while(1){
 					BoardPosition move = detectMoveSpace(board, pos);
 					if(!isOutofBoard(move)){
-						BoardStatus simboard = *board;
-						movePiece(&simboard, pos, move);
-						if(isOutofBoard(isBlackChecked(&simboard))) return 1;
+						return !willKingBeChecked(board, pos, move);
 					} else{
 						break;
 					}

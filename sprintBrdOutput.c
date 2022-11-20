@@ -49,15 +49,16 @@ void drawBrdImageS(char *buf, const BrdOutputImage* image, int inverted){
         buf += strlen(buf);
 		sprintf(buf, "%s\n",image->messages[i]);
 	}
+	return;
 }
 
 void drawBrdImageDfMsgS(char *buf, const BrdOutputImage* image, int inverted){
     BrdOutputImage *tmpimg = malloc(sizeof(BrdOutputImage));
 	*tmpimg = *image;
 	if(isWhiteTurn(tmpimg->board)){
-		addBrdMessage(tmpimg, "It is white turn!");
+		addBrdMessage(tmpimg, "It is white's turn!");
 	} else{
-		addBrdMessage(tmpimg, "It is black turn!");
+		addBrdMessage(tmpimg, "It is black's turn!");
 	}
 	drawBrdImageS(buf, tmpimg, inverted);
 	free(tmpimg);
@@ -77,4 +78,5 @@ void drawMarkedBrdImageS(char *buf, const BrdOutputImage* image, BoardPosition p
 
 	drawBrdImageDfMsgS(buf, tmpimg, inverted);
 	free(tmpimg);
+	return;
 }

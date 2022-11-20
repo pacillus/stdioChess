@@ -38,8 +38,6 @@ typedef struct
 {
     //プレイヤーの通信ソケット
     int soc;
-    //スレッドのIDを保存する
-    pthread_t player_threadID;
     //各プレイヤーのゲームとの要求などのやり取りを行うオブジェクト
     StdioChessOrder *order;
 } ChessPlayer;
@@ -205,7 +203,7 @@ void doCommandProcess(ChessServer *server, int player)
         readCommand(order, cmd_buf);
 
         //ゲームが終わっていた場合
-        if (server->game->game_end)
+        if (server->game->gmstat != GAME_PLAYING)
         {
             result = assignResponse(order, "", RES_TYPE_REFRESH);
             if (result == 1)
@@ -220,7 +218,7 @@ void doCommandProcess(ChessServer *server, int player)
             result = assignResponse(order, "Board updated", RES_TYPE_REFRESH);
             if (result == 1)
             {
-                fprintf(stderr, "Unknown error occured in assignResponse (refresh)");
+                fprintf(stderr, "Unknown error occured in assignResponse (refresh)\n");
             }
             return;
         }
@@ -239,6 +237,23 @@ void doCommandProcess(ChessServer *server, int player)
             }
             return;
         }
+        
+        //降参の場合
+        if (strcmp(cmd_buf, "forfeit") == 0)
+        {
+            if(player == 0){
+                server->game->gmstat = GAME_FORFEIT_WHITE;
+                result = assignResponse(order, "Forfeit accepted\n", RES_TYPE_ACCEPTED);
+            } else if(player == 1){
+                server->game->gmstat = GAME_FORFEIT_BLACK;
+                result = assignResponse(order, "Forfeit accepted\n", RES_TYPE_ACCEPTED);
+            } else result = 1;
+
+            if(result == 1){
+                fprintf(stderr, "Unknown error occured in assignResponse (forfeit)\n");
+            }
+            return;
+        } 
 
         //ここに移動コマンドの処理
         result = acceptCommand(server->game, server->log, cmd_buf, player);
@@ -252,63 +267,19 @@ void doCommandProcess(ChessServer *server, int player)
             result = assignResponse(order, "Command denied:Target piece is not yours\n", RES_TYPE_DENIED);
         if (1 == result)
         {
-            fprintf(stderr, "Unknown error occured in assignResponse (in game)");
+            fprintf(stderr, "Unknown error occured in assignResponse (in game)\n");
         }
     }
 }
 
 int runGame()
 {
-    ChessServer *server = createServer();
 
     /*変数宣言*/
-    //通信用
-    // struct sockaddr_in me; /* サーバ(自分)の情報 */
-    // int soc_waiting;       /* listenするソケット */
-    // int soc1;
-    // int soc2;
-
+    ChessServer *server = createServer();
     //スレッドのIDを保存する
-    // pthread_t player1_threadID;
-    // pthread_t player2_threadID;
-
-    //各プレイヤーのゲームとの要求などのやり取りを行うオブジェクト
-    // StdioChessOrder player1_order;
-    // StdioChessOrder player2_order;
-
-    //コマンドを一時的に保持する変数
-    // char cmd_buf[CMD_LEN];
-
-    //初期化
-    // memset(&player1_order, 0, sizeof(player1_order));
-    // memset(&player2_order, 0, sizeof(player2_order));
-    // memset(cmd_buf, 0, sizeof(cmd_buf));
-
-    //ゲーム本体を用意
-    // BoardStatus game = startGame();
-    // board_log log;
-    // clearLog(log);
-    // addLog(log, &game);
-
-    /* サーバ(自分)のアドレスを sockaddr_in 構造体に格納  */
-    // memset((char *)&me, 0, sizeof(me));
-    // me.sin_family = AF_INET;
-    // me.sin_addr.s_addr = htonl(INADDR_ANY);
-    // me.sin_port = htons(PORT);
-
-    /* IPv4でストリーム型のソケットを作成  */
-    // if ((soc_waiting = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    //{
-    //     perror("socket");
-    //     exit(1);
-    // }
-
-    /* サーバ(自分)のアドレスをソケットに設定 */
-    // if (bind(soc_waiting, (struct sockaddr *)&me, sizeof(me)) == -1)
-    //{
-    //     perror("bind");
-    //     exit(1);
-    // }
+    pthread_t threadw;
+    pthread_t threadb;
 
     //通信待機
     server->pl[0].soc = connectClient(server->soc_waiting);
@@ -334,7 +305,7 @@ int runGame()
     thread_args->order = server->pl[0].order;
     strcpy(thread_args->color, "white");
 
-    if (pthread_create(&(server->pl[0].player_threadID), NULL, clientInterfaceThread, (void *)thread_args) != 0)
+    if (pthread_create(&threadw, NULL, clientInterfaceThread, (void *)thread_args) != 0)
     {
         fprintf(stderr, "pthread_create() failed¥n");
         exit(1);
@@ -353,17 +324,15 @@ int runGame()
     thread_args->order = server->pl[1].order;
     strcpy(thread_args->color, "black");
 
-    if (pthread_create(&(server->pl[1].player_threadID), NULL, clientInterfaceThread, (void *)thread_args) != 0)
+    if (pthread_create(&threadb, NULL, clientInterfaceThread, (void *)thread_args) != 0)
     {
         fprintf(stderr, "pthread_create() failed¥n");
         exit(1);
     }
 
-    while (!server->game->game_end)
+    while (server->game->gmstat == GAME_PLAYING)
     {
-        //doCommandProcess(&player1_order, &game, log, cmd_buf, 1);
         doCommandProcess(server, 0);
-        //doCommandProcess(&player2_order, &game, log, cmd_buf, 2);
         doCommandProcess(server, 1);
     }
 
@@ -371,23 +340,12 @@ int runGame()
 
     //終了処理
     deleteServer(server);
-
     char buf[BUF_LEN];
-    int i = 0;
-    memset(buf, 0, BUF_LEN);
-    while (strcmp(buf, "close") != 0 && strcmp(buf, "c") != 0)
-    {
-        if (i % 5 == 0)
-        {
-            myprintf(buf, "No more process to do in server\nEnter \"close\" or \"c\" to close server\n");
-        }
-        fgets(buf, BUF_LEN, stdin);
-        //配列終わりに終端文字を入れて安全に
-        buf[BUF_LEN - 1] = '\0';
-        //末尾の改行削除
-        buf[strlen(buf) - 1] = '\0';
-        i++;
-    }
+    myprintf(buf, "Game process finished.\nWaiting for sub-thread to close\n");
+    void **ret = NULL;
+    pthread_join(threadw, ret);
+    pthread_join(threadb, ret);
+    myprintf(buf, "All thread closed!\n");
 
     return 0;
 }
@@ -434,9 +392,6 @@ void *clientInterfaceThread(void *args)
     //オーダーのやり取りをするオブジェクト
     StdioChessOrder *order;
 
-    /* 戻り時にスレッドのリソース割当を解除 */
-    pthread_detach(pthread_self());
-
     //初期化
     memset(&response, 0, sizeof(response));
     memset(&request, 0, sizeof(request));
@@ -460,7 +415,7 @@ void *clientInterfaceThread(void *args)
     while (1)
     {
         awaitRequest(&request, soc);
-        if (game->game_end)
+        if (game->gmstat != GAME_PLAYING)
         {
             response.board = *game;
             strcpy(response.color, color);
@@ -477,15 +432,28 @@ void *clientInterfaceThread(void *args)
             else if (isStalemate(game))
             {
                 strcpy(response.message, "Stalemate! It's a tie!\nGame over\n");
+            } 
+            else if(game->gmstat == GAME_FORFEIT_WHITE)
+            {
+                strcpy(response.message, "Forfeit by white Player! Black wins!\nGame over\n");
+            }
+            else if(game->gmstat == GAME_FORFEIT_BLACK)
+            {
+                strcpy(response.message, "Forfeit by black Player! White wins!\nGame over\n");
+            }
+            else
+            {
+                fprintf(stderr, "Unknown error in sendResponse (game end)\n");
             }
 
             sendResponse(&response, soc);
             //最後の送信処理になるのでループを抜ける
             break;
         }
+
         if (assignCommand(order, request.command) == 1)
         {
-            fprintf(stderr, "Unknown error in assignCommand");
+            fprintf(stderr, "Unknown error in assignCommand\n");
         }
 
         memset(&response, 0, sizeof(response));
@@ -499,7 +467,7 @@ void *clientInterfaceThread(void *args)
         sendResponse(&response, soc);
     }
 
-
+    
     close(soc);
     return NULL;
 }

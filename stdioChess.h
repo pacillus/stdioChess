@@ -47,6 +47,15 @@
 //黒が女王側でキャッスリングできるか
 #define WHITE_QSD_CST_FLAG (1 << 3)
 
+typedef char game_status;
+
+//game_statusに割り当てる値
+typedef enum{
+	GAME_PLAYING,
+	GAME_END,
+	GAME_FORFEIT_WHITE,
+	GAME_FORFEIT_BLACK
+}_game_status;
 
 //コマは棋譜での表示に従ってcharで表示、ただし白は小文字黒は大文字
 typedef struct{
@@ -56,8 +65,9 @@ typedef struct{
 	char board[8][8];
 	//キャッスリングが可能かをマスクで示す
 	char cst_flag_mask;
-	//1なら終了 0なら続行
-	char game_end;
+	//ゲームが進行中、終了、などの状態を持つ
+	//_game_statusに状態の種類が記述されている
+	game_status gmstat;
 	//アンパッサンができる位置
 	BoardPosition en_passant;
 }BoardStatus;
@@ -71,10 +81,6 @@ BoardStatus emptyBoard();
 //ボードをセットする
 //初期化に使ってもよし
 BoardStatus startGame();
-
-//ボードを複製する
-//知識不足で作ったけど必要ないので削除
-//void copyBoard(const BoardStatus* status, BoardStatus* to);
 
 //白の番かどうか
 int isWhiteTurn(const BoardStatus* status);

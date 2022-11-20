@@ -11,13 +11,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-int main(){
+int main()
+{
     runGame();
-    
-    
+
     //BoardStatus game = emptyBoard();
     //BrdOutputImage img = newScrnImage(&game, 1);
-    
+    //strncpy(game.board, "  K  q  k  pP r  p Q           R          p   P   p  P   pb   PR", 64);
     /*
     game.board[0][0] = 'r';
     game.board[1][0] = 'n';
@@ -52,13 +52,37 @@ int main(){
     game.board[6][7] = 'N';
     game.board[7][7] = 'R';
     */
-   
 
-    //printf("%d\n", isWhiteChecked(&game));
-    //printf("%d\n", isWhiteCheckmate(&game));
-    
+    /*
+    game.board[1][0] = 'k';
+    game.board[2][1] = 'p';
+    game.board[7][1] = 'p';
+    game.board[0][2] = 'K';
+    game.board[5][2] = 'p';
+    game.board[6][2] = 'p';
+    game.board[7][2] = 'b';
+    game.board[1][3] = 'p';
+    game.board[2][3] = 'Q';
+    game.board[1][4] = 'P';
+    game.board[0][5] = 'q';
+    game.board[6][5] = 'P';
+    game.board[1][6] = 'r';
+    game.board[5][6] = 'P';
+    game.board[7][6] = 'P';
+    game.board[3][7] = 'R';
+    game.board[7][7] = 'R';
+    */
+
+    //printf("checkmate:%d stalemate:%d", isBlackCheckmate(&game), isStalemate(&game));
+
+    //printf("%d", canMove(&game, brdPos(1, 3), brdPos(1, 2)));
+
+    // printf("%d\n", isWhiteChecked(&game));
+    //printf("white:%d\n", isWhiteCheckmate(&game));
+    //printf("black%d\n", isBlackCheckmate(&game));
+
     //drawBrdImage(&img);
-    //drawMarkedBrdImage(&img, brdPos(1, 5));
-    
+    //drawMarkedBrdImage(&img, brdPos(1, 3));
+
     return 0;
 }

@@ -58,9 +58,81 @@
 #define OUTPUT_BUF 2048
 #define INPUT_BUF 128
 
+const char input[][8] = {
+	"e2 e4",
+	"d7 d6",
+	"d2 d4",
+	"g8 f6",
+	"b1 c3",
+	"g7 g6",
+	"c1 e3",
+	"f8 g7",
+	"d1 d2",
+	"c7 c6",
+	"f2 f3",
+	"b7 b5",
+	"g1 e2",
+	"b8 d7",
+	"e3 h6",
+	"g7 h6",
+	"d2 h6",
+	"c8 b7",
+	"a2 a3",
+	"e7 e5",
+	"e1 c1",
+	"d8 e7",
+	"c1 b1",
+	"a7 a6",
+	"e2 c1",
+	"e8 c8",
+	"c1 b3",
+	"e5 d4",
+	"d1 d4",
+	"c6 c5",
+	"d4 d1",
+	"d7 b6",
+	"g2 g3",
+	"c8 b8",
+	"b3 a5",
+	"b7 a8",
+	"f1 h3",
+	"d6 d5",
+	"h6 f4",
+	"b8 a7",
+	"h1 e1",
+	"d5 d4",
+	"c3 d5",
+	"b6 d5",
+	"e4 d5",
+	"e7 d6",
+	"d1 d4",
+	"c5 d4",
+	"e1 e7",
+	"a7 b6",
+	"f4 d4",
+	"b6 a5",
+	"b2 b4",
+	"a5 a4",
+	"d4 c3",
+	"d6 d5",
+	"e7 a7",
+	"a8 b7",
+	"a7 b7",
+	"d5 c4",
+	"c3 f6",
+	"a4 a3",
+	"f6 a6",
+	"a3 b4",
+	"forfeit"
+};
+
+void autoinput(char* buf, int turn){
+	strcpy(buf, input[turn - 1]);
+}
+
+
 void runClient(const char *server_ip, int port)
 {
-	struct hostent *server_ent;
 	struct sockaddr_in server;
 	int soc; /* descriptor for socket */
 	// char   ip_str[]="127.0.0.1";
@@ -109,10 +181,12 @@ void runClient(const char *server_ip, int port)
 	strcpy(color, response.color);
 	printBoard(stdoutbuf, &image, &response);
 
-	while (!response.board.game_end)
+	while (response.board.gmstat == GAME_PLAYING)
 	{
-		fgets(stdinbuf, sizeof(stdinbuf), stdin);
-		stdinbuf[strlen(stdinbuf) - 1] = '\0';
+		//fgets(stdinbuf, sizeof(stdinbuf), stdin);
+		//stdinbuf[strlen(stdinbuf) - 1] = '\0';
+		usleep(rand() % 1000001);
+		autoinput(stdinbuf, response.board.turn);
 
 		//クライアント定義済みコマンドの処理
 		if (strlen(stdinbuf) == 0)
@@ -144,9 +218,16 @@ void runClient(const char *server_ip, int port)
 
 				continue;
 		}
+		
 
 		//ここからコマンド送信処理
+		//移動コマンドの表記が正規でなければ
+		if(strlen(stdinbuf) == 5 && stdinbuf[2] == ' '){
+			stdinbuf[2] = '>';
+		}
+
 		//入力内容をコマンドに設定
+		memset(&request, 0, sizeof(ChessNetProtRequest));
 		strncpy(request.command, stdinbuf, CMD_LEN);
 		request.command[CMD_LEN - 1] = '\0';
 
@@ -198,84 +279,3 @@ void printMarkedBoard(char *stdbuf, const BrdOutputImage *image, BoardPosition p
 
 	return;
 }
-
-/*
-int main(){
-	BoardStatus game = startGame();
-	BrdOutputImage image = newScrnImage(&game, 1);
-	setPieceMarker(&image, real_set);
-
-	//ログの宣言と初期化
-	board_log log;
-	clearLog(log);
-
-
-	drawBrdImageDfMsg(&image);
-	clearBrdMessages(&image);
-
-	addLog(log, &game);
-
-	char input[99] = "";
-	do{
-		scanf("%s", input);
-
-
-		if(!strncmp("predict", input, 7)){
-			BoardPosition pos = translateAlgbrNot(input + 7);
-			drawMarkedBrdImage(&image, pos);
-
-		} else if(!strcmp("undo",input) && game.turn != 1){
-			game = *getPreviousBoard(log, &game);
-
-			drawBrdImageDfMsg(&image);
-		} else if(!strncmp("promote", input, 7)){
-			BoardPosition pos = translateAlgbrNot(input + 7);
-			promotePawn(&game, pos, input[9]);
-
-
-			drawBrdImageDfMsg(&image);
-		} else
-			//inputがrestartの時 ゲームを初期化する
-			if(!strcmp("restart", input)){
-			game = startGame();
-			image = newScrnImage(&game, 1);
-			setPieceMarker(&image, real_set);
-
-			clearLog(log);
-
-			addLog(log, &game);
-
-			drawBrdImageDfMsg(&image);
-		} else
-			//inputがchangedisplayの時 画面の表示方法を変更
-			if(!strncmp("changedisplay", input, 13)){
-			if(input[13] == 'l'){
-				setPieceMarker(&image, letter_set);
-			} else if(input[13] == 'r'){
-				setPieceMarker(&image, real_set);
-			}
-
-			addBrdMessage(&image, "コマの表示を変更しました");
-
-			drawBrdImageDfMsg(&image);
-
-			clearBrdMessages(&image);
-
-		}
-			//普通のコマンドの時 間違った文法でも変化しないで終わる
-			else {
-
-			movePieceCommand(&game, input);
-
-			addLog(log, &game);
-
-
-			drawBrdImageDfMsg(&image);
-
-
-		}
-		//inputがexitの時プログラム終了
-	} while(strcmp("exit",input));
-
-	return 0;
-}*/
