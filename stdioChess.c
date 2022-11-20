@@ -481,13 +481,13 @@ void movePieceCommand(BoardStatus* status,const char* command){
 		promotePawn(status, to, command[6]);
 	}
 	
-	/*
+	
 	//未解決のバグ用に取っておくように
-	if((isBlackTurn(status) && isBlackCheckmate(status)) 
-			|| (isWhiteTurn(status) && isWhiteCheckmate(status))
+	if(isBlackCheckmate(status)
+			|| isWhiteCheckmate(status)
 			|| isStalemate(status)){
 		fprintf(stderr, "wtf");
-	}*/
+	}
 
 	if(isBlackCheckmate(status)
 			||  isWhiteCheckmate(status)

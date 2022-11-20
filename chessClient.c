@@ -186,9 +186,11 @@ void runClient(const char *server_ip, int port)
 
 	while (response.board.gmstat == GAME_PLAYING)
 	{
-		fgets(stdinbuf, sizeof(stdinbuf), stdin);
+		memset(stdinbuf, 0, INPUT_BUF);
+		fgets(stdinbuf, INPUT_BUF, stdin);
+		stdinbuf[INPUT_BUF - 1] = '\0';
 		stdinbuf[strlen(stdinbuf) - 1] = '\0';
-		//usleep(rand() % 1000001);
+		//usleep(rand() % 1000001 + 1000000);
 		//autoinput(stdinbuf, response.board.turn);
 
 		//クライアント定義済みコマンドの処理

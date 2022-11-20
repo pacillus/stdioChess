@@ -30,8 +30,8 @@ void printSquareContentS(char *buf, char piece, const piece_marker_set set, int 
 }
 
 void drawBrdImageS(char *buf, const BrdOutputImage* image, int inverted){
-    sprintf(buf, "\033[H\033[J");
-	strcpy(buf, " ┌───┬───┬───┬───┬───┬───┬───┬───┐\n");
+    strcpy(buf, "\033[H\033[J");
+	strcat(buf, " ┌───┬───┬───┬───┬───┬───┬───┬───┐\n");
 	for(int i = inverted ? 7 : 0; inverted ? i > -1 : i < 8; inverted ? i-- : i++){
         buf += strlen(buf);
 		sprintf(buf, "%d", 8 - i);
