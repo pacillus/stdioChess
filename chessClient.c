@@ -187,6 +187,7 @@ void runClient(const char *server_ip, int port)
 	while (response.board.gmstat == GAME_PLAYING)
 	{
 		memset(stdinbuf, 0, INPUT_BUF);
+		fflush(stdin);
 		fgets(stdinbuf, INPUT_BUF, stdin);
 		stdinbuf[INPUT_BUF - 1] = '\0';
 		stdinbuf[strlen(stdinbuf) - 1] = '\0';
@@ -214,6 +215,8 @@ void runClient(const char *server_ip, int port)
 				else if (stdinbuf[14] == 'r'){
 					setPieceMarker(&image, real_set);
 				}
+				// TODO エラー処理
+				else continue;
 
 				addBrdMessage(&image, "Changed the display of the pieces");
 
@@ -309,8 +312,10 @@ void emulateMoves(char *stdinbuf , char *stdoutbuf, const BoardStatus *board, co
 	drawBrdImageDfMsgS(stdoutbuf, img, inverted);
 	write(1, stdoutbuf, strlen(stdoutbuf));
 
-	memset(stdinbuf, 0, INPUT_BUF);
+	
 	while(strcmp(stdinbuf, "quit") != 0 && strcmp(stdinbuf, "q") != 0){
+		memset(stdinbuf, 0, INPUT_BUF);
+		fflush(stdin);
 		fgets(stdinbuf, INPUT_BUF, stdin);
 		stdinbuf[strlen(stdinbuf) - 1] = '\0';
 		// predictの時対象のコマの移動範囲を検知
