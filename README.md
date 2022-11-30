@@ -8,7 +8,7 @@ GUIは利用しない。
 
 
 ## 2. インストール方法
-リポジトリ内のMakefileを使い$ makeをすることにより、chess_clientとchess_serverが生成される。
+リポジトリ内のMakefileを使い`$ make`をすることにより、chess_clientとchess_serverが生成される。
 
 
 ## 3. 利用方法
